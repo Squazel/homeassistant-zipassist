@@ -113,7 +113,7 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{self._hydrotap_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._hydrotap_id)},
-            name=_device_name(hydrotap),
+            name=device_name(hydrotap),
             manufacturer="Zip Industries",
             model=hydrotap.get("moduleName"),
             sw_version=hydrotap.get("firmwareVersion"),

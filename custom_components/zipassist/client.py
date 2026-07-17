@@ -10,13 +10,21 @@ from typing import Any
 
 import aiohttp
 
-from .const import (
-    API_AUTH_LOGIN,
-    API_AUTH_REFRESH,
-    API_HYDROTAPS,
-    DEFAULT_BASE_URL,
-    DEFAULT_TIMEOUT,
-)
+try:
+    from .const import (
+        API_AUTH_LOGIN,
+        API_AUTH_REFRESH,
+        API_HYDROTAPS,
+        DEFAULT_BASE_URL,
+        DEFAULT_TIMEOUT,
+    )
+except ImportError:
+    # Fallback for standalone testing without Home Assistant
+    API_AUTH_LOGIN = "/api/auth/jwt/login"
+    API_AUTH_REFRESH = "/api/auth/jwt/refresh"
+    API_HYDROTAPS = "/api/hydrotaps"
+    DEFAULT_BASE_URL = "https://zipassist.zipindustries.com"
+    DEFAULT_TIMEOUT = 30
 
 _LOGGER = logging.getLogger(__name__)
 

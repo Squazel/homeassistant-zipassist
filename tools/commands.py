@@ -63,11 +63,19 @@ def format_code() -> bool:
     """Format code with ruff (using pyproject.toml config)."""
     print(f"{get_emoji('🎨', '*')} Formatting code...")
     success = True
+
+    # Build target list, skipping directories that don't exist
+    targets = []
+    for d in ("custom_components", "tests", "exploration"):
+        if Path(d).exists():
+            targets.append(d)
+    target_str = " ".join(targets)
+
     success &= run_command(
-        "ruff format custom_components/ tests/ exploration/", "Ruff formatting"
+        f"ruff format {target_str}", "Ruff formatting"
     )
     success &= run_command(
-        "ruff check --fix custom_components/ tests/ exploration/",
+        f"ruff check --fix {target_str}",
         "Ruff import sorting & auto-fixes",
     )
     return success
@@ -79,8 +87,14 @@ def lint_code(strict: bool = False) -> bool:
     success = True
 
     # Always run ruff linting
+    targets = []
+    for d in ("custom_components", "tests", "exploration"):
+        if Path(d).exists():
+            targets.append(d)
+    target_str = " ".join(targets)
+
     success &= run_command(
-        "ruff check custom_components/ tests/ exploration/", "Ruff linting"
+        f"ruff check {target_str}", "Ruff linting"
     )
 
     # MyPy type checking - allow failures in non-strict mode for Home Assistant integrations
