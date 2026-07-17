@@ -48,6 +48,9 @@
             },
             "firmware_version": {
                 "name": "Firmware Version"
+            },
+            "system_fault_details": {
+                "name": "System Fault Details"
             }
         },
         "number": {
@@ -59,6 +62,17 @@
             }
         },
         "binary_sensor": {
+            "safety_lock": {
+                "name": "Safety Lock"
+            },
+            "hot_isolation": {
+                "name": "Hot Isolation"
+            },
+            "system_fault": {
+                "name": "System Fault"
+            }
+        },
+        "switch": {
             "safety_lock": {
                 "name": "Safety Lock"
             },

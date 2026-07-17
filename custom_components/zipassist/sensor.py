@@ -92,6 +92,12 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="firmware_version",
         value_fn=lambda h: h.get("firmwareVersion"),
     ),
+    ZipAssistSensorEntityDescription(
+        key="system_fault_details",
+        translation_key="system_fault_details",
+        icon="mdi:alert-circle",
+        value_fn=lambda h: None,  # overridden in the entity — uses faults dict
+    ),
 )
 
 
@@ -123,6 +129,17 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> str | int | float | None:
         """Return the state of the sensor."""
+        if self.entity_description.key == "system_fault_details":
+            faults = (self.coordinator.data.get("faults") or {}).get(
+                self._hydrotap_id, []
+            )
+            if not faults:
+                return "No faults"
+            # Return comma-separated fault descriptions
+            return ", ".join(
+                f.get("faultCode", f.get("code", "Unknown"))
+                for f in faults
+            )
         for h in self.coordinator.data.get("hydrotaps", []):
             if h.get("hydrotapId") == self._hydrotap_id:
                 return self.entity_description.value_fn(h)

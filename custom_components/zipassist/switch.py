@@ -1,4 +1,4 @@
-"""Binary sensor platform for ZipAssist CMMS — safety toggles."""
+"""Switch platform for ZipAssist CMMS — safety toggles."""
 
 from __future__ import annotations
 
@@ -6,10 +6,9 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
-    BinarySensorEntity,
-    BinarySensorEntityDescription,
+from homeassistant.components.switch import (
+    SwitchEntity,
+    SwitchEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -27,50 +26,48 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, kw_only=True)
-class ZipAssistBinarySensorEntityDescription(BinarySensorEntityDescription):
-    """Description for a ZipAssist binary sensor entity."""
+class ZipAssistSwitchEntityDescription(SwitchEntityDescription):
+    """Description for a ZipAssist switch entity."""
 
     value_fn: Callable[[dict], bool | None]
     available_fn: Callable[[dict], bool]  # whether the feature is available
+    setting_key: str  # top-level key in the settings payload
 
 
-BINARY_SENSOR_TYPES: tuple[ZipAssistBinarySensorEntityDescription, ...] = (
-    ZipAssistBinarySensorEntityDescription(
+SWITCH_TYPES: tuple[ZipAssistSwitchEntityDescription, ...] = (
+    ZipAssistSwitchEntityDescription(
         key="safety_lock",
         translation_key="safety_lock",
+        icon="mdi:lock",
         value_fn=lambda s: s.get("safetyLockEnabled"),
         available_fn=lambda so: so.get("safety", {}).get("safetyLockEnabled", False),
+        setting_key="safetyLockEnabled",
     ),
-    ZipAssistBinarySensorEntityDescription(
+    ZipAssistSwitchEntityDescription(
         key="hot_isolation",
         translation_key="hot_isolation",
+        icon="mdi:water-off",
         value_fn=lambda s: s.get("hotIsolationEnabled"),
         available_fn=lambda so: so.get("safety", {}).get(
             "hotIsolationEnabled", False
         ),
-    ),
-    ZipAssistBinarySensorEntityDescription(
-        key="system_fault",
-        translation_key="system_fault",
-        device_class=BinarySensorDeviceClass.PROBLEM,
-        value_fn=lambda f: bool(f),  # True if any faults exist
-        available_fn=lambda _: True,  # always available
+        setting_key="hotIsolationEnabled",
     ),
 )
 
 
-class ZipAssistBinarySensor(CoordinatorEntity, BinarySensorEntity):
-    """Binary sensor for a ZipAssist hydrotap safety setting."""
+class ZipAssistSwitch(CoordinatorEntity, SwitchEntity):
+    """Switch entity for a ZipAssist hydrotap safety setting."""
 
-    entity_description: ZipAssistBinarySensorEntityDescription
+    entity_description: ZipAssistSwitchEntityDescription
 
     def __init__(
         self,
         coordinator: DataUpdateCoordinator,
         hydrotap: dict,
-        description: ZipAssistBinarySensorEntityDescription,
+        description: ZipAssistSwitchEntityDescription,
     ) -> None:
-        """Initialize the binary sensor."""
+        """Initialize the switch."""
         super().__init__(coordinator)
         self._hydrotap_id: str = hydrotap["hydrotapId"]
         self.entity_description = description
@@ -87,15 +84,31 @@ class ZipAssistBinarySensor(CoordinatorEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return true if the safety feature is enabled."""
-        if self.entity_description.key == "system_fault":
-            faults = (self.coordinator.data.get("faults") or {}).get(
-                self._hydrotap_id, []
-            )
-            return self.entity_description.value_fn(faults)
         settings = (self.coordinator.data.get("settings") or {}).get(
             self._hydrotap_id, {}
         )
         return self.entity_description.value_fn(settings)
+
+    async def async_turn_on(self, **kwargs) -> None:
+        """Turn the safety feature on."""
+        await self._set_setting(True)
+
+    async def async_turn_off(self, **kwargs) -> None:
+        """Turn the safety feature off."""
+        await self._set_setting(False)
+
+    async def _set_setting(self, value: bool) -> None:
+        """Send the setting update to the API."""
+        payload = {self.entity_description.setting_key: value}
+        success = await self.coordinator.client.update_settings(
+            self._hydrotap_id, payload
+        )
+        if success:
+            await self.coordinator.async_request_refresh()
+        else:
+            _LOGGER.error(
+                "Failed to set %s for %s", self.entity_description.key, self._hydrotap_id
+            )
 
 
 async def async_setup_entry(
@@ -103,23 +116,22 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up ZipAssist binary sensor entities from a config entry."""
+    """Set up ZipAssist switch entities from a config entry."""
     coordinator: DataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     hydrotaps: list[dict] = coordinator.data.get("hydrotaps", [])
     settings_options_map: dict = coordinator.data.get("settings_options", {})
 
-    entities: list[ZipAssistBinarySensor] = []
+    entities: list[ZipAssistSwitch] = []
     for hydrotap in hydrotaps:
         hid = hydrotap.get("hydrotapId")
         if not hid:
             continue
         tap_options = settings_options_map.get(hid, {})
-        for description in BINARY_SENSOR_TYPES:
-            # Only create if the feature is available per settings-options
+        for description in SWITCH_TYPES:
             if description.available_fn(tap_options):
                 entities.append(
-                    ZipAssistBinarySensor(coordinator, hydrotap, description)
+                    ZipAssistSwitch(coordinator, hydrotap, description)
                 )
 
-    _LOGGER.debug("Creating %d binary sensor entities", len(entities))
+    _LOGGER.debug("Creating %d switch entities", len(entities))
     async_add_entities(entities)
