@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import base64
+import json
 import logging
+import time
 from typing import Any
 
 import aiohttp
@@ -17,6 +19,21 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Refresh token when fewer than this many seconds remain before expiry
+_TOKEN_REFRESH_MARGIN = 300  # 5 minutes
+
+
+def _jwt_expiry(token: str) -> float:
+    """Extract the 'exp' claim from a JWT (seconds since epoch), or 0 if unparseable."""
+    try:
+        payload_b64 = token.split(".")[1]
+        # Add padding if needed
+        payload_b64 += "=" * (4 - len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64))
+        return float(payload.get("exp", 0))
+    except (IndexError, ValueError, json.JSONDecodeError):
+        return 0
 
 
 class ZipAssistClient:
@@ -36,6 +53,7 @@ class ZipAssistClient:
         self._session = session
         self._own_session = False
         self._token: str | None = None
+        self._token_expiry: float = 0  # epoch seconds
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create an HTTP session."""
@@ -50,6 +68,13 @@ class ZipAssistClient:
         if self._token:
             return {"Authorization": f"Bearer {self._token}"}
         return {}
+
+    @property
+    def _token_expiring_soon(self) -> bool:
+        """True if the token is missing or will expire within the margin."""
+        if not self._token:
+            return True
+        return time.time() + _TOKEN_REFRESH_MARGIN >= self._token_expiry
 
     # ---------------------------------------------------------------- auth
 
@@ -69,7 +94,13 @@ class ZipAssistClient:
             if resp.status == 200:
                 data = await resp.json()
                 self._token = data.get("token")
-                return self._token is not None
+                if self._token:
+                    self._token_expiry = _jwt_expiry(self._token)
+                    _LOGGER.debug(
+                        "Token expires in %.0fs",
+                        self._token_expiry - time.time(),
+                    )
+                    return True
             _LOGGER.error("Auth failed: %s", resp.status)
             return False
 
@@ -85,8 +116,21 @@ class ZipAssistClient:
                 new_token = data.get("token")
                 if new_token:
                     self._token = new_token
+                    self._token_expiry = _jwt_expiry(new_token)
+                    _LOGGER.debug("Token refreshed")
                     return True
+            _LOGGER.debug("Token refresh failed: %s", resp.status)
             return False
+
+    async def _ensure_fresh_token(self) -> None:
+        """Refresh or re-authenticate if the token is near expiry."""
+        if not self._token_expiring_soon:
+            return
+        if self._token and await self.refresh_token():
+            return
+        # Refresh failed or no token — full re-auth
+        _LOGGER.debug("Re-authenticating (token expired or missing)")
+        await self.authenticate()
 
     # --------------------------------------------------------------- hydrotaps
 
@@ -116,9 +160,19 @@ class ZipAssistClient:
         self, hydrotap_id: str, settings: dict[str, Any]
     ) -> bool:
         """Update settings for a hydrotap (PATCH)."""
+        await self._ensure_fresh_token()
         url = f"{self._base_url}{API_HYDROTAPS}/{hydrotap_id}/settings"
         session = await self._get_session()
-        async with session.patch(url, headers=self._auth_headers, json=settings) as resp:
+        async with session.patch(
+            url, headers=self._auth_headers, json=settings
+        ) as resp:
+            if resp.status == 401:
+                _LOGGER.debug("PATCH 401 — re-authenticating and retrying")
+                await self.authenticate()
+                async with session.patch(
+                    url, headers=self._auth_headers, json=settings
+                ) as retry_resp:
+                    return retry_resp.status == 200
             return resp.status == 200
 
     # ------------------------------------------------------------------ logs
@@ -151,11 +205,31 @@ class ZipAssistClient:
 
     # ------------------------------------------------------------------ fetch
 
-    async def _get(self, path: str) -> dict[str, Any] | list[dict[str, Any]] | None:
-        """GET an API path, return parsed JSON or None."""
+    async def _get(
+        self, path: str
+    ) -> dict[str, Any] | list[dict[str, Any]] | None:
+        """GET an API path, return parsed JSON or None.
+
+        Automatically refreshes the token before the call if near expiry,
+        and retries once on 401.
+        """
+        await self._ensure_fresh_token()
+
         url = f"{self._base_url}{path}"
         session = await self._get_session()
         async with session.get(url, headers=self._auth_headers) as resp:
+            if resp.status == 401:
+                _LOGGER.debug("GET %s → 401, re-authenticating", path)
+                if await self.authenticate():
+                    async with session.get(
+                        url, headers=self._auth_headers
+                    ) as retry_resp:
+                        if (
+                            retry_resp.status == 200
+                            and "json" in (retry_resp.content_type or "")
+                        ):
+                            return await retry_resp.json()
+                return None
             if resp.status == 200 and "json" in (resp.content_type or ""):
                 return await resp.json()
             _LOGGER.debug("GET %s → %s", url, resp.status)

@@ -78,7 +78,7 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--verbose",
-    "--cov=.",
+    "--cov=custom_components/zipassist",
     "--cov-report=term-missing",
     "--cov-report=xml:tests/coverage.xml",
     "--cov-report=html:tests/htmlcov",
@@ -91,8 +91,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["."]
-include = ["custom_components/zipassist/*"]
+source = ["custom_components/zipassist"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",

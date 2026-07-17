@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
-from custom_components.zipassist.client import ZipAssistClient
+import os
+import sys
+
+# Import the client without Home Assistant dependencies
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(__file__), "..", "custom_components", "zipassist"
+    ),
+)
+
+from client import ZipAssistClient  # noqa: E402
 
 
 def test_client_initialization() -> None:
