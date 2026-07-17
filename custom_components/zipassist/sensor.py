@@ -15,7 +15,6 @@ from homeassistant.components.sensor import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfVolume
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
@@ -24,6 +23,7 @@ from homeassistant.helpers.update_coordinator import (
 )
 
 from .const import DOMAIN
+from .helpers import device_name
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,20 +93,6 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         value_fn=lambda h: h.get("firmwareVersion"),
     ),
 )
-
-
-def _device_name(hydrotap: dict) -> str:
-    """Build the HA device name from location fields."""
-    loc = hydrotap.get("hydrotapLocation") or {}
-    building = loc.get("buildingName", "").strip()
-    level = loc.get("level", "").strip()
-    location = loc.get("locationInBuilding", "").strip()
-    if building and (level or location):
-        detail = "/".join(p for p in (level, location) if p)
-        return f"{building} - {detail}"
-    if building:
-        return building
-    return hydrotap.get("moduleName", "Unknown")
 
 
 class ZipAssistSensor(CoordinatorEntity, SensorEntity):

@@ -1,0 +1,40 @@
+# Pre-commit configuration for ZipAssist CMMS integration
+# This ensures code is automatically formatted and linted before commits
+
+repos:
+  # Use centralized development commands for consistency
+  - repo: local
+    hooks:
+      - id: quality-check
+        name: Code quality check (ruff format + lint)
+        entry: python tools/commands.py quality
+        language: python
+        additional_dependencies: [ruff, mypy]
+        files: ^(custom_components|tests|exploration)/.*\.py$
+        pass_filenames: false
+
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        files: \.(py|yaml|yml|json|md)$
+      - id: end-of-file-fixer
+        files: \.(py|yaml|yml|json|md)$
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+# Configuration
+ci:
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit.com hooks
+
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

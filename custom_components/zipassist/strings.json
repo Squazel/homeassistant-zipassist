@@ -1,5 +1,3 @@
-"""Strings for the ZipAssist CMMS integration."""
-
 {
     "config": {
         "step": {
@@ -9,17 +7,64 @@
                 "data": {
                     "email": "Email",
                     "password": "Password",
-                    "base_url": "Base URL",
-                },
-            },
+                    "base_url": "Base URL"
+                }
+            }
         },
         "error": {
             "cannot_connect": "Failed to connect to ZipAssist CMMS",
             "invalid_auth": "Invalid email or password",
-            "unknown": "An unknown error occurred",
+            "unknown": "An unknown error occurred"
         },
         "abort": {
-            "already_configured": "This account is already configured",
-        },
+            "already_configured": "This account is already configured"
+        }
     },
+    "entity": {
+        "sensor": {
+            "filter_litres_remaining": {
+                "name": "Filter Litres Remaining"
+            },
+            "filter_days_remaining": {
+                "name": "Filter Days Remaining"
+            },
+            "filter_estimated_days": {
+                "name": "Filter Estimated Days"
+            },
+            "average_daily_usage": {
+                "name": "Average Daily Usage"
+            },
+            "peak_hourly_usage": {
+                "name": "Peak Hourly Usage"
+            },
+            "last_sync": {
+                "name": "Last Sync"
+            },
+            "status": {
+                "name": "Status"
+            },
+            "serial_number": {
+                "name": "Serial Number"
+            },
+            "firmware_version": {
+                "name": "Firmware Version"
+            }
+        },
+        "number": {
+            "boiling_temp": {
+                "name": "Boiling Temperature"
+            },
+            "chilled_temp": {
+                "name": "Chilled Temperature"
+            }
+        },
+        "binary_sensor": {
+            "safety_lock": {
+                "name": "Safety Lock"
+            },
+            "hot_isolation": {
+                "name": "Hot Isolation"
+            }
+        }
+    }
 }

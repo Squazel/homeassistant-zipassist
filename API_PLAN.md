@@ -174,12 +174,54 @@ From the settings response, key groups:
 ## Data Shape Notes
 
 ### Hydrotap detail response (key fields):
+
+**Important:** The detail endpoint (`/api/hydrotaps/{id}`) returns device metadata only —
+it does NOT include `status`, `filterLifeRemaining*`, `averageDailyUsage`, or
+`peakHourlyUsage`. Those fields come from the **list** endpoint
+(`/api/owners/{ownerId}/hydrotaps`). The coordinator must merge both sources.
+
+```json
+{
+  "hydrotapId": "uuid",
+  "serialNumber": 2017102302086,
+  "moduleName": "BC 100/75",
+  "productNumber": "2824AU",
+  "firmwareVersion": "B03.1.00 3.6 1.05",
+  "calibrationDate": "2017-11-06",
+  "50LitreFilterDate": "2017-12-14 00:00:00",
+  "filterChangeDate": null,
+  "externalBoosterInstalled": null,
+  "macAddress": "58:7a:62:2e:8a:86",
+  "connectionKey": null,
+  "locationAlias": null,
+  "retired": null,
+  "previousHydrotapId": "",
+  "hydrotapLocation": {
+    "buildingName": "The Warehouse",
+    "level": "1",
+    "locationInBuilding": "Kitchen",
+    "address": "165 Victoria St",
+    "suburb": "Beaconsfield",
+    "state": "New South Wales",
+    "postcode": "2015",
+    "country": "Australia"
+  },
+  "owner": { "ownerId": "uuid", "company": {...} },
+  "ownerId": "uuid",
+  "hydrotapGroups": [],
+  "permissions": { "view": true, "edit": true },
+  "createdAt": "2026-07-16T22:46:55+0000",
+  "updatedAt": "2026-07-16T22:55:38+0000"
+}
+```
+
+### Hydrotap list item (key fields — source of sensor data):
+
 ```json
 {
   "hydrotapId": "uuid",
   "serialNumber": "2017102302086",
   "moduleName": "BC 100/75",
-  "productNumber": "2824AU",
   "firmwareVersion": "B03.1.00 3.6 1.05",
   "calibrationDate": "2017-11-06T00:00:00.000Z",
   "status": "No alerts",
@@ -188,49 +230,152 @@ From the settings response, key groups:
   "filterLifeRemainingEstimated": 350,
   "averageDailyUsage": 4.6,
   "peakHourlyUsage": 2.8,
-  "hydrotapLocation": {
-    "buildingName": "The Warehouse",
-    "level": "1",
-    "locationInBuilding": "Kitchen",
-    "address": "...",
-    "suburb": "Beaconsfield",
-    "state": "New South Wales",
-    "postcode": "2015",
-    "country": "Australia"
-  },
-  "permissions": { "view": true, "edit": true }
+  "lastSyncTimestamp": "2026-07-17T08:35:32+0000",
+  "buildingName": "The Warehouse",
+  "level": "1",
+  "locationInBuilding": "Kitchen",
+  "country": "Australia",
+  "state": "New South Wales",
+  "zipManaged": false,
+  "connectionKey": null,
+  "ownerCompanyName": "...",
+  "facilityManagerCompanyName": null,
+  "permissions": { "view": true, "edit": true },
+  "hydrotapGroups": [],
+  "groupName": null,
+  "retired": null
 }
 ```
 
-### Settings response shape:
+### Settings response shape (verified live):
+
 ```json
 {
-  "energy": {
-    "daily": { "mon": {...}, "tue": {...}, ... },
-    "everyday": {...},
-    "weekdayWeekend": { "weekday": {...}, "weekend": {...} }
-  },
-  "water": {
-    "boiling": { "temp": 98, "duration": {...} },
-    "ambient": { "temp": 25, "duration": {...} },
-    "chilled": { "temp": 5, "duration": {...} }
-  },
-  "internalFilterLimits": { "days": 360, "litres": 6000 },
-  "externalFilterLimits": { "days": null, "litres": null },
-  "safety": { "allowSafetySettingChange": true, "safetyLockEnabled": false, "hotIsolationEnabled": false },
-  "security": { "pinEnabled": false, ... },
-  "sleepModeCode": "...",
-  "syncPeriod": "03:00:00",
+  "hydrotapId": "uuid",
+  "syncPeriod": "00:10:00",
+  "sleepModeCode": 6,
+  "safetyLockEnabled": true,
+  "allowSafetySettingChange": true,
+  "hotIsolationEnabled": false,
   "zipManaged": false,
+  "language": "en",
+  "lastUpdatedBy": "uuid",
+  "lastUpdatedByType": "user",
   "zipViewPermission": true,
-  "zipEditPermission": true
+  "zipEditPermission": true,
+  "createdAt": "2026-07-16T22:46:55+0000",
+  "updatedAt": "2026-07-17T08:35:32+0000",
+  "hydrotap": {
+    "hydrotapId": "uuid",
+    "macAddress": "58:7a:62:2e:8a:86",
+    "connectionKey": null,
+    "hydrotapLocationId": "uuid",
+    "ownerId": "uuid",
+    "serialNumber": 2017102302086,
+    "productNumber": "2824AU",
+    "moduleName": "BC 100/75",
+    "firmwareVersion": "B03.1.00 3.6 1.05",
+    "locationAlias": null,
+    "calibrationDate": "2017-11-06",
+    "filterChangeDate": null,
+    "50LitreFilterDate": "2017-12-14 00:00:00",
+    "externalBoosterInstalled": null,
+    "retired": null,
+    "previousHydrotapId": "",
+    "createdAt": "...",
+    "updatedAt": "...",
+    "permissions": { "view": true, "edit": true }
+  },
+  "externalFilterLimits": { "days": null, "litres": null },
+  "internalFilterLimits": { "days": 360, "litres": 6000 },
+  "boiling": { "temp": 98, "duration": 15, "isFeature": true },
+  "chilled": { "temp": 5, "duration": 15, "isFeature": true },
+  "sparkling": { "temp": null, "duration": 15, "isFeature": false },
+  "ambient": { "duration": 15, "isFeature": false },
+  "security": {
+    "pin": { "enabled": false, "value": null },
+    "hydrotapCanModify": true
+  },
+  "energy": {
+    "activeMode": "everyday",
+    "daily": {
+      "mon": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" },
+      "tue": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" },
+      "wed": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" },
+      "thu": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" },
+      "fri": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" },
+      "sat": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" },
+      "sun": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" }
+    },
+    "everyday": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": true, "offTime": "19:00:00" },
+    "weekdayWeekend": {
+      "weekday": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" },
+      "weekend": { "onTimeActive": false, "onTime": "07:00:00", "offTimeActive": false, "offTime": "18:00:00" }
+    }
+  }
 }
 ```
+
+Key corrections from earlier assumptions:
+- `boiling`/`chilled`/`sparkling` have `duration` as an **integer** (seconds), not `{onTime, offTime}`
+- `ambient` has no `temp` field (ambient is not temperature-controlled)
+- `sparkling.temp` is `null` when the feature is not available (`isFeature: false`)
+- `sleepModeCode` is an **integer** (6), not a string
+- `security` is `{ pin: { enabled, value }, hydrotapCanModify }`, not `{ pinEnabled }`
+- `energy` has an `activeMode` field ("everyday" | "daily" | "weekdayWeekend")
+- `syncPeriod` is `"00:10:00"` (10 min), not `"03:00:00"`
+
+### Settings-options response shape (verified live):
+
+```json
+{
+  "water": {
+    "ambient": false,
+    "boiling": {
+      "temp": { "min": 68, "max": 100, "step": 0.5 },
+      "duration": { "min": 5, "max": 15, "step": 1 }
+    },
+    "chilled": {
+      "temp": { "min": 5, "max": 9, "step": 1, "range": 4 },
+      "duration": { "min": 5, "max": 15, "step": 1 }
+    },
+    "sparkling": false
+  },
+  "filters": {
+    "internal": {
+      "litres": { "default": 6000, "min": 500, "max": 10000, "step": 500 },
+      "days": { "default": 360, "min": 30, "max": 420, "step": 30 }
+    },
+    "external": {
+      "litres": { "default": 6000, "min": 500, "max": 10000, "step": 500 },
+      "days": { "default": 360, "min": 30, "max": 420, "step": 30 }
+    }
+  },
+  "safety": {
+    "safetyLockEnabled": true,
+    "hotIsolationEnabled": true,
+    "allowSafetySettingChange": true
+  },
+  "syncPeriod": { "min": "00:10:00", "max": "01:00:00", "step": "00:10:00" }
+}
+```
+
+Key observations:
+- `water.ambient` and `water.sparkling` are `false` — no settings available for those types
+- Boiling temp range: 68–100°C, step 0.5
+- Chilled temp range: 5–9°C, step 1 (with `range: 4` indicating 4°C adjustable span)
+- Filter limits: litres 500–10000 (step 500), days 30–420 (step 30)
+- `safety` lists which safety toggles are **available** (not their current state)
+- Sync period: 10–60 min, step 10 min
 
 ### Status log shape:
 ```json
 {
-  "timestamp": "...",
+  "hydrotapLogId": "uuid",
+  "hydrotapId": "uuid",
+  "timestamp": "2026-07-17T08:35:32+0000",
+  "createdAt": "2026-07-17T08:35:32+0000",
+  "timeSinceLastLog": "00:10:00",
   "energyKwhSinceLastLog": 0.5,
   "energyKwhTotal": 1234.5,
   "daysFilteredInternal": 15,

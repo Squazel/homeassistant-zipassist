@@ -7,7 +7,6 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType
 
 from .client import ZipAssistClient
 from .const import DEFAULT_BASE_URL, DOMAIN
@@ -17,6 +16,8 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
+    Platform.NUMBER,
+    Platform.BINARY_SENSOR,
 ]
 
 

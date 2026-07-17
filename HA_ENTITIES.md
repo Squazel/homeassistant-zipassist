@@ -71,24 +71,23 @@ sensor:
     icon: mdi:chip
 
 # --- settings as number entities (read/write) ---
-# TODO: implement after coordinator polling is stable
 
 number:
   - name: "The Warehouse - 1/Kitchen Boiling Temperature"
     unique_id: zipassist_631a3385_boiling_temp
     native_min_value: 68
     native_max_value: 100
-    native_step: 1
+    native_step: 0.5
     native_unit_of_measurement: "°C"
 
   - name: "The Warehouse - 1/Kitchen Chilled Temperature"
     unique_id: zipassist_631a3385_chilled_temp
-    native_min_value: 2
-    native_max_value: 15
+    native_min_value: 5
+    native_max_value: 9
     native_step: 1
     native_unit_of_measurement: "°C"
 
-# --- binary sensors (future) ---
+# --- binary sensors ---
 
 binary_sensor:
   - name: "The Warehouse - 1/Kitchen Safety Lock"
