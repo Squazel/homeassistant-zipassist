@@ -103,6 +103,14 @@
             "hot_isolation": {
                 "name": "Hot Isolation"
             }
+        },
+        "select": {
+            "sleep_mode": {
+                "name": "Sleep Mode"
+            },
+            "energy_mode": {
+                "name": "Energy Mode"
+            }
         }
     }
 }

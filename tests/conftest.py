@@ -53,6 +53,14 @@ class _StubSwitchEntityDescription:
     icon: str | None = None
 
 
+@dataclass(frozen=True)
+class _StubSelectEntityDescription:
+    """Stub for SelectEntityDescription."""
+    key: str = ""
+    translation_key: str | None = None
+    icon: str | None = None
+
+
 class _StubEntity:
     """Stub base for all HA entities that supports _attr_* pattern."""
 
@@ -141,6 +149,29 @@ class _StubSwitchEntity(_StubEntity):
     entity_description = None
 
 
+class _StubSelectEntity(_StubEntity):
+    """Stub for SelectEntity."""
+    entity_description = None
+    _attr_options: list[str] = []
+    _attr_current_option: str | None = None
+
+    @property
+    def options(self):
+        return self._attr_options
+
+    @options.setter
+    def options(self, value):
+        self._attr_options = value
+
+    @property
+    def current_option(self):
+        return self._attr_current_option
+
+    @current_option.setter
+    def current_option(self, value):
+        self._attr_current_option = value
+
+
 class _StubDataUpdateCoordinator:
     """Stub for DataUpdateCoordinator."""
 
@@ -197,7 +228,17 @@ sys.modules["homeassistant.components.switch"] = _make_module(
     SwitchEntity=_StubSwitchEntity,
     SwitchEntityDescription=_StubSwitchEntityDescription,
 )
+sys.modules["homeassistant.components.select"] = _make_module(
+    SelectEntity=_StubSelectEntity,
+    SelectEntityDescription=_StubSelectEntityDescription,
+)
 sys.modules["homeassistant.components"] = MagicMock()
+
+# Stub voluptuous (used by services.py)
+_voluptuous = MagicMock()
+_voluptuous.Schema = lambda *args, **kwargs: lambda v: v
+_voluptuous.Required = lambda v: v
+sys.modules["voluptuous"] = _voluptuous
 
 
 # ------------------------------------------------------------------ sample data

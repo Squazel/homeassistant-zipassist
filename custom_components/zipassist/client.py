@@ -246,6 +246,29 @@ class ZipAssistClient:
         )
         return data if isinstance(data, list) else []
 
+    async def clear_fault(
+        self, hydrotap_id: str, fault_id: str, end_timestamp: str
+    ) -> bool:
+        """Clear a system fault by setting its end timestamp."""
+        await self._ensure_fresh_token()
+        url = (
+            f"{self._base_url}{API_HYDROTAPS}/{hydrotap_id}"
+            f"/system-faults/{fault_id}"
+        )
+        session = await self._get_session()
+        payload = {"endTimestamp": end_timestamp}
+        async with session.patch(
+            url, headers=self._auth_headers, json=payload
+        ) as resp:
+            if resp.status == 401:
+                _LOGGER.debug("PATCH fault 401 — re-authenticating and retrying")
+                await self.authenticate()
+                async with session.patch(
+                    url, headers=self._auth_headers, json=payload
+                ) as retry_resp:
+                    return retry_resp.status == 200
+            return resp.status == 200
+
     # ------------------------------------------------------------------ fetch
 
     async def _get(

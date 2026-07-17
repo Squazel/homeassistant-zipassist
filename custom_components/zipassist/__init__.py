@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant
 from .client import ZipAssistClient
 from .const import DEFAULT_BASE_URL, DOMAIN
 from .coordinator import ZipAssistCoordinator
+from .services import async_setup_services, async_unload_services
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.BINARY_SENSOR,
     Platform.SWITCH,
+    Platform.SELECT,
 ]
 
 
@@ -48,6 +50,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Register services (only once, not per entry)
+    await async_setup_services(hass)
+
     return True
 
 
@@ -58,4 +64,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
         if coordinator:
             await coordinator.client.close()
+        # Only unload services if no more entries
+        if not hass.data[DOMAIN]:
+            async_unload_services(hass)
     return unload_ok

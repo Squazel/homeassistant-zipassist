@@ -30,6 +30,10 @@ from zipassist.switch import (  # noqa: E402
     SWITCH_TYPES,
     ZipAssistSwitch,
 )
+from zipassist.select import (  # noqa: E402
+    SELECT_TYPES,
+    ZipAssistSelect,
+)
 
 
 # ------------------------------------------------------------------ sensor entities
@@ -396,3 +400,83 @@ class TestSwitchEntities:
         """Test setting_key for switch types."""
         assert SWITCH_TYPES[0].setting_key == "safetyLockEnabled"
         assert SWITCH_TYPES[1].setting_key == "hotIsolationEnabled"
+
+
+# ------------------------------------------------------------------ select entities
+
+
+class TestSelectEntities:
+    """Tests for select entity creation and state."""
+
+    def test_all_select_types_defined(self) -> None:
+        """Test all expected select types are defined."""
+        keys = {d.key for d in SELECT_TYPES}
+        assert keys == {"sleep_mode", "energy_mode"}
+
+    def test_select_creation(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test creating a select entity."""
+        desc = SELECT_TYPES[0]  # sleep_mode
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert entity.unique_id == "631a3385-301b-4c9c-97ed-3a1a50061f5c_sleep_mode"
+        assert entity.device_info is not None
+
+    def test_sleep_mode_current_option(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test sleep mode current option."""
+        desc = SELECT_TYPES[0]  # sleep_mode
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert entity.current_option == "6"
+
+    def test_energy_mode_current_option(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test energy mode current option."""
+        desc = SELECT_TYPES[1]  # energy_mode
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert entity.current_option == "everyday"
+
+    def test_select_options(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test select entity has correct options."""
+        desc = SELECT_TYPES[0]  # sleep_mode
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert "0" in entity.options
+        assert "8" in entity.options
+        assert len(entity.options) == 9
+
+    def test_energy_mode_options(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test energy mode has correct options."""
+        desc = SELECT_TYPES[1]  # energy_mode
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert entity.options == ["everyday", "daily", "weekdayWeekend"]
+
+    @pytest.mark.asyncio
+    async def test_select_option_sleep(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test selecting a sleep mode option."""
+        desc = SELECT_TYPES[0]  # sleep_mode
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_select_option("3")
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            {"sleepModeCode": 3},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_select_option_energy(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test selecting an energy mode option."""
+        desc = SELECT_TYPES[1]  # energy_mode
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_select_option("daily")
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            {"energy": {"activeMode": "daily"}},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_select_option_failure(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test selecting an option when API fails."""
+        mock_coordinator.client.update_settings.return_value = False
+        desc = SELECT_TYPES[0]
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_select_option("3")
+        mock_coordinator.async_request_refresh.assert_not_called()

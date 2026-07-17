@@ -677,3 +677,46 @@ class TestEnsureFreshToken:
         await client._ensure_fresh_token()
         client.refresh_token.assert_not_called()
         client.authenticate.assert_called_once()
+
+
+# ------------------------------------------------------------------ clear fault
+
+
+class TestClearFault:
+    """Tests for clear_fault."""
+
+    @pytest.mark.asyncio
+    async def test_clear_fault_success(self) -> None:
+        """Test clearing a fault successfully."""
+        resp = _make_mock_response(status=200)
+        session = _make_mock_session(patch_response=resp)
+
+        client = ZipAssistClient(email="test@example.com", password="pw")
+        client._token = "jwt"
+        client._token_expiry = 9999999999
+        client._session = session
+
+        result = await client.clear_fault(
+            "tap-1", "fault-1", "2026-07-18T00:00:00+0000"
+        )
+        assert result is True
+        session.patch.assert_called_once()
+        call_args = session.patch.call_args
+        assert "tap-1" in call_args[0][0]
+        assert "fault-1" in call_args[0][0]
+
+    @pytest.mark.asyncio
+    async def test_clear_fault_failure(self) -> None:
+        """Test clearing a fault fails."""
+        resp = _make_mock_response(status=400)
+        session = _make_mock_session(patch_response=resp)
+
+        client = ZipAssistClient(email="test@example.com", password="pw")
+        client._token = "jwt"
+        client._token_expiry = 9999999999
+        client._session = session
+
+        result = await client.clear_fault(
+            "tap-1", "fault-1", "2026-07-18T00:00:00+0000"
+        )
+        assert result is False
