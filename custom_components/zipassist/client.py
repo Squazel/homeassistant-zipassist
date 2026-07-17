@@ -15,6 +15,7 @@ try:
         API_AUTH_LOGIN,
         API_AUTH_REFRESH,
         API_HYDROTAPS,
+        API_OWNERS,
         DEFAULT_BASE_URL,
         DEFAULT_TIMEOUT,
     )
@@ -23,6 +24,7 @@ except ImportError:
     API_AUTH_LOGIN = "/api/auth/jwt/login"
     API_AUTH_REFRESH = "/api/auth/jwt/refresh"
     API_HYDROTAPS = "/api/hydrotaps"
+    API_OWNERS = "/api/owners"
     DEFAULT_BASE_URL = "https://zipassist.zipindustries.com"
     DEFAULT_TIMEOUT = 30
 
@@ -62,6 +64,8 @@ class ZipAssistClient:
         self._own_session = False
         self._token: str | None = None
         self._token_expiry: float = 0  # epoch seconds
+        self._user: dict[str, Any] = {}  # user info from auth response
+        self._owner_id: str | None = None  # extracted from auth response
 
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create an HTTP session."""
@@ -87,7 +91,11 @@ class ZipAssistClient:
     # ---------------------------------------------------------------- auth
 
     async def authenticate(self) -> bool:
-        """Login with HTTP Basic Auth, get JWT token."""
+        """Login with HTTP Basic Auth, get JWT token.
+
+        Also extracts user info (userType, ownerId) for routing
+        subsequent API calls to the correct endpoint.
+        """
         credentials = base64.b64encode(
             f"{self._email}:{self._password}".encode()
         ).decode()
@@ -104,9 +112,18 @@ class ZipAssistClient:
                 self._token = data.get("token")
                 if self._token:
                     self._token_expiry = _jwt_expiry(self._token)
+                    # Extract user info for routing
+                    inner = data.get("data", data)
+                    self._user = inner.get("user", data.get("user", {}))
+                    self._owner_id = (
+                        self._user.get("owner", {}).get("ownerId")
+                        or self._user.get("ownerId")
+                    )
                     _LOGGER.debug(
-                        "Token expires in %.0fs",
+                        "Token expires in %.0fs, userType=%s, ownerId=%s",
                         self._token_expiry - time.time(),
+                        self._user.get("userType"),
+                        self._owner_id,
                     )
                     return True
             _LOGGER.error("Auth failed: %s", resp.status)
@@ -143,7 +160,25 @@ class ZipAssistClient:
     # --------------------------------------------------------------- hydrotaps
 
     async def get_hydrotaps(self) -> list[dict[str, Any]]:
-        """Get all hydrotaps for the authenticated user."""
+        """Get all hydrotaps for the authenticated user.
+
+        Uses the owner-specific endpoint when the user is an owner,
+        falling back to the admin endpoint if that fails.
+        """
+        user_type = self._user.get("userType", "")
+
+        # Try owner-specific endpoint first
+        if user_type == "owner" and self._owner_id:
+            data = await self._get(
+                f"{API_OWNERS}/{self._owner_id}/hydrotaps"
+            )
+            if isinstance(data, list):
+                return data
+            _LOGGER.debug(
+                "Owner endpoint returned non-list, falling back to /api/hydrotaps"
+            )
+
+        # Fall back to admin endpoint
         data = await self._get(f"{API_HYDROTAPS}")
         return data if isinstance(data, list) else []
 

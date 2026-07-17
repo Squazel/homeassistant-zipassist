@@ -197,6 +197,110 @@ class TestAuth:
         assert result is False
 
     @pytest.mark.asyncio
+    async def test_authenticate_extracts_owner_id(self) -> None:
+        """Test auth extracts ownerId from response."""
+        header = _b64_encode(json.dumps({"alg": "HS256", "typ": "JWT"}))
+        payload = _b64_encode(json.dumps({"exp": 9999999999, "sub": "user"}))
+        jwt_token = f"{header}.{payload}.sig"
+
+        resp = _make_mock_response(
+            json_data={
+                "token": jwt_token,
+                "user": {
+                    "name": "Owner User",
+                    "userType": "owner",
+                    "owner": {"ownerId": "owner-uuid-123"},
+                },
+            }
+        )
+        session = _make_mock_session(get_response=resp)
+
+        client = ZipAssistClient(email="test@example.com", password="pw")
+        client._session = session
+
+        result = await client.authenticate()
+        assert result is True
+        assert client._user.get("userType") == "owner"
+        assert client._owner_id == "owner-uuid-123"
+
+    @pytest.mark.asyncio
+    async def test_authenticate_admin_user(self) -> None:
+        """Test auth for admin user (no ownerId)."""
+        header = _b64_encode(json.dumps({"alg": "HS256", "typ": "JWT"}))
+        payload = _b64_encode(json.dumps({"exp": 9999999999, "sub": "user"}))
+        jwt_token = f"{header}.{payload}.sig"
+
+        resp = _make_mock_response(
+            json_data={
+                "token": jwt_token,
+                "user": {"name": "Admin", "userType": "admin"},
+            }
+        )
+        session = _make_mock_session(get_response=resp)
+
+        client = ZipAssistClient(email="test@example.com", password="pw")
+        client._session = session
+
+        result = await client.authenticate()
+        assert result is True
+        assert client._user.get("userType") == "admin"
+        assert client._owner_id is None
+
+    @pytest.mark.asyncio
+    async def test_authenticate_nested_data_user(self) -> None:
+        """Test auth with user nested under data.user."""
+        header = _b64_encode(json.dumps({"alg": "HS256", "typ": "JWT"}))
+        payload = _b64_encode(json.dumps({"exp": 9999999999, "sub": "user"}))
+        jwt_token = f"{header}.{payload}.sig"
+
+        resp = _make_mock_response(
+            json_data={
+                "token": jwt_token,
+                "data": {
+                    "user": {
+                        "name": "Nested User",
+                        "userType": "owner",
+                        "owner": {"ownerId": "nested-owner-id"},
+                    }
+                },
+            }
+        )
+        session = _make_mock_session(get_response=resp)
+
+        client = ZipAssistClient(email="test@example.com", password="pw")
+        client._session = session
+
+        result = await client.authenticate()
+        assert result is True
+        assert client._owner_id == "nested-owner-id"
+
+    @pytest.mark.asyncio
+    async def test_authenticate_flat_owner_id(self) -> None:
+        """Test auth with ownerId directly on user object."""
+        header = _b64_encode(json.dumps({"alg": "HS256", "typ": "JWT"}))
+        payload = _b64_encode(json.dumps({"exp": 9999999999, "sub": "user"}))
+        jwt_token = f"{header}.{payload}.sig"
+
+        resp = _make_mock_response(
+            json_data={
+                "token": jwt_token,
+                "user": {
+                    "name": "Flat User",
+                    "userType": "owner",
+                    "ownerId": "flat-owner-id",
+                },
+            }
+        )
+        session = _make_mock_session(get_response=resp)
+
+        client = ZipAssistClient(email="test@example.com", password="pw")
+        client._session = session
+
+        result = await client.authenticate()
+        assert result is True
+        assert client._owner_id == "flat-owner-id"
+
+    @pytest.mark.asyncio
     async def test_refresh_token_success(self) -> None:
         """Test successful token refresh."""
         resp = _make_mock_response(json_data={"token": "new-jwt"})
@@ -340,6 +444,63 @@ class TestApiCalls:
         client = self._make_client(get_json=[{"hydrotapLogId": "log-1"}])
         result = await client.get_status_logs("tap-1")
         assert result == [{"hydrotapLogId": "log-1"}]
+
+    @pytest.mark.asyncio
+    async def test_get_hydrotaps_owner_route(self) -> None:
+        """Test get_hydrotaps uses owner-specific endpoint."""
+        client = self._make_client(get_json=[{"hydrotapId": "owner-tap"}])
+        client._user = {"userType": "owner"}
+        client._owner_id = "owner-123"
+
+        result = await client.get_hydrotaps()
+        assert result == [{"hydrotapId": "owner-tap"}]
+        # Verify it called the owner endpoint
+        call_url = client._session.get.call_args[0][0]
+        assert "/api/owners/owner-123/hydrotaps" in call_url
+
+    @pytest.mark.asyncio
+    async def test_get_hydrotaps_owner_fallback(self) -> None:
+        """Test get_hydrotaps falls back to admin endpoint."""
+        # First response (owner endpoint) returns non-list
+        resp_owner = _make_mock_response(json_data={"error": "forbidden"})
+        # Second response (admin endpoint) returns list
+        resp_admin = _make_mock_response(json_data=[{"hydrotapId": "admin-tap"}])
+
+        session = _make_mock_session(get_response=resp_owner)
+        session.get = MagicMock(side_effect=[resp_owner, resp_admin])
+
+        client = ZipAssistClient(email="test@example.com", password="pw")
+        client._token = "jwt"
+        client._token_expiry = 9999999999
+        client._session = session
+        client._user = {"userType": "owner"}
+        client._owner_id = "owner-123"
+
+        result = await client.get_hydrotaps()
+        assert result == [{"hydrotapId": "admin-tap"}]
+        assert session.get.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_get_hydrotaps_admin_route(self) -> None:
+        """Test get_hydrotaps uses admin endpoint for admin users."""
+        client = self._make_client(get_json=[{"hydrotapId": "admin-tap"}])
+        client._user = {"userType": "admin"}
+
+        result = await client.get_hydrotaps()
+        assert result == [{"hydrotapId": "admin-tap"}]
+        call_url = client._session.get.call_args[0][0]
+        assert "/api/hydrotaps" in call_url
+
+    @pytest.mark.asyncio
+    async def test_get_hydrotaps_no_user_type(self) -> None:
+        """Test get_hydrotaps uses admin endpoint when no user type."""
+        client = self._make_client(get_json=[{"hydrotapId": "tap"}])
+        # _user is empty dict by default
+
+        result = await client.get_hydrotaps()
+        assert result == [{"hydrotapId": "tap"}]
+        call_url = client._session.get.call_args[0][0]
+        assert "/api/hydrotaps" in call_url
 
 
 # ------------------------------------------------------------------ lifecycle
