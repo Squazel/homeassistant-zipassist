@@ -130,7 +130,19 @@ class TestNumberEntities:
     def test_all_number_types_defined(self) -> None:
         """Test all expected number types are defined."""
         keys = {d.key for d in NUMBER_TYPES}
-        assert keys == {"boiling_temp", "chilled_temp"}
+        expected = {
+            "boiling_temp",
+            "chilled_temp",
+            "boiling_duration",
+            "chilled_duration",
+            "sparkling_duration",
+            "ambient_duration",
+            "internal_filter_litres",
+            "internal_filter_days",
+            "external_filter_litres",
+            "external_filter_days",
+        }
+        assert keys == expected
 
     def test_number_creation(self, mock_coordinator, sample_hydrotap) -> None:
         """Test creating a number entity."""
@@ -181,6 +193,79 @@ class TestNumberEntities:
         entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
         await entity.async_set_native_value(95.0)
         mock_coordinator.async_request_refresh.assert_not_called()
+
+    # --- dispense duration ---
+
+    def test_boiling_duration_value(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test boiling duration number."""
+        desc = NUMBER_TYPES[2]  # boiling_duration
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == 15
+        assert entity.entity_description.native_unit_of_measurement == "s"
+
+    def test_sparkling_duration_not_available(self) -> None:
+        """Test sparkling duration is not available when isFeature=False."""
+        desc = NUMBER_TYPES[4]  # sparkling_duration
+        settings = {"sparkling": {"duration": 15, "isFeature": False}}
+        assert desc.available_fn(settings) is False
+
+    # --- filter limits ---
+
+    def test_internal_filter_litres_value(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test internal filter litres number."""
+        desc = NUMBER_TYPES[6]  # internal_filter_litres
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == 6000
+
+    def test_internal_filter_days_value(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test internal filter days number."""
+        desc = NUMBER_TYPES[7]  # internal_filter_days
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == 360
+
+    def test_external_filter_not_available(self) -> None:
+        """Test external filter is not available when value is None."""
+        desc = NUMBER_TYPES[8]  # external_filter_litres
+        settings = {"externalFilterLimits": {"days": None, "litres": None}}
+        assert desc.available_fn(settings) is False
+
+    def test_filter_range_from_options(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test filter limit range is set from settings-options."""
+        desc = NUMBER_TYPES[6]  # internal_filter_litres
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_min_value == 500
+        assert entity.native_max_value == 10000
+        assert entity.native_step == 500
+
+    @pytest.mark.asyncio
+    async def test_filter_set_value(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test setting a filter limit value."""
+        desc = NUMBER_TYPES[6]  # internal_filter_litres
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_set_native_value(5000.0)
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            {"internalFilterLimits": {"litres": 5000.0}},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_duration_set_value(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test setting a dispense duration value."""
+        desc = NUMBER_TYPES[2]  # boiling_duration
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_set_native_value(10.0)
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            {"boiling": {"duration": 10.0}},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
 
 
 # ------------------------------------------------------------------ binary sensor entities

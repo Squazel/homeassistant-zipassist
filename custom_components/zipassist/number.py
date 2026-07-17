@@ -1,4 +1,4 @@
-"""Number platform for ZipAssist CMMS — temperature controls."""
+"""Number platform for ZipAssist CMMS — temperature, filter, and dispense controls."""
 
 from __future__ import annotations
 
@@ -32,10 +32,28 @@ class ZipAssistNumberEntityDescription(NumberEntityDescription):
     """Description for a ZipAssist number entity."""
 
     value_fn: Callable[[dict], float | None]
-    attr_fn: Callable[[dict], str]  # settings key path, e.g. "boiling" or "chilled"
+    payload_fn: Callable[[float], dict]  # builds the PATCH payload from a value
+    options_path: tuple[str, ...] = ()  # path in settings-options for range
+    available_fn: Callable[[dict], bool] = lambda s: True  # whether to create entity
+
+
+def _water_temp_payload(attr: str):
+    """Build payload for water temperature settings."""
+    return lambda v: {attr: {"temp": v}}
+
+
+def _water_duration_payload(attr: str):
+    """Build payload for water dispense duration settings."""
+    return lambda v: {attr: {"duration": v}}
+
+
+def _filter_payload(filter_type: str, field: str):
+    """Build payload for filter limit settings."""
+    return lambda v: {f"{filter_type}FilterLimits": {field: v}}
 
 
 NUMBER_TYPES: tuple[ZipAssistNumberEntityDescription, ...] = (
+    # --- temperature ---
     ZipAssistNumberEntityDescription(
         key="boiling_temp",
         translation_key="boiling_temp",
@@ -46,7 +64,9 @@ NUMBER_TYPES: tuple[ZipAssistNumberEntityDescription, ...] = (
             if s.get("boiling", {}).get("isFeature")
             else None
         ),
-        attr_fn=lambda _: "boiling",
+        payload_fn=_water_temp_payload("boiling"),
+        options_path=("water", "boiling", "temp"),
+        available_fn=lambda s: s.get("boiling", {}).get("isFeature", False),
     ),
     ZipAssistNumberEntityDescription(
         key="chilled_temp",
@@ -58,13 +78,125 @@ NUMBER_TYPES: tuple[ZipAssistNumberEntityDescription, ...] = (
             if s.get("chilled", {}).get("isFeature")
             else None
         ),
-        attr_fn=lambda _: "chilled",
+        payload_fn=_water_temp_payload("chilled"),
+        options_path=("water", "chilled", "temp"),
+        available_fn=lambda s: s.get("chilled", {}).get("isFeature", False),
+    ),
+    # --- dispense duration ---
+    ZipAssistNumberEntityDescription(
+        key="boiling_duration",
+        translation_key="boiling_duration",
+        native_unit_of_measurement="s",
+        mode=NumberMode.BOX,
+        icon="mdi:timer-outline",
+        value_fn=lambda s: (
+            s.get("boiling", {}).get("duration")
+            if s.get("boiling", {}).get("isFeature")
+            else None
+        ),
+        payload_fn=_water_duration_payload("boiling"),
+        options_path=("water", "boiling", "duration"),
+        available_fn=lambda s: s.get("boiling", {}).get("isFeature", False),
+    ),
+    ZipAssistNumberEntityDescription(
+        key="chilled_duration",
+        translation_key="chilled_duration",
+        native_unit_of_measurement="s",
+        mode=NumberMode.BOX,
+        icon="mdi:timer-outline",
+        value_fn=lambda s: (
+            s.get("chilled", {}).get("duration")
+            if s.get("chilled", {}).get("isFeature")
+            else None
+        ),
+        payload_fn=_water_duration_payload("chilled"),
+        options_path=("water", "chilled", "duration"),
+        available_fn=lambda s: s.get("chilled", {}).get("isFeature", False),
+    ),
+    ZipAssistNumberEntityDescription(
+        key="sparkling_duration",
+        translation_key="sparkling_duration",
+        native_unit_of_measurement="s",
+        mode=NumberMode.BOX,
+        icon="mdi:timer-outline",
+        value_fn=lambda s: (
+            s.get("sparkling", {}).get("duration")
+            if s.get("sparkling", {}).get("isFeature")
+            else None
+        ),
+        payload_fn=_water_duration_payload("sparkling"),
+        options_path=("water", "sparkling", "duration"),
+        available_fn=lambda s: s.get("sparkling", {}).get("isFeature", False),
+    ),
+    ZipAssistNumberEntityDescription(
+        key="ambient_duration",
+        translation_key="ambient_duration",
+        native_unit_of_measurement="s",
+        mode=NumberMode.BOX,
+        icon="mdi:timer-outline",
+        value_fn=lambda s: (
+            s.get("ambient", {}).get("duration")
+            if s.get("ambient", {}).get("isFeature")
+            else None
+        ),
+        payload_fn=_water_duration_payload("ambient"),
+        options_path=("water", "ambient", "duration"),
+        available_fn=lambda s: s.get("ambient", {}).get("isFeature", False),
+    ),
+    # --- filter limits ---
+    ZipAssistNumberEntityDescription(
+        key="internal_filter_litres",
+        translation_key="internal_filter_litres",
+        native_unit_of_measurement="L",
+        mode=NumberMode.BOX,
+        icon="mdi:water-filter",
+        value_fn=lambda s: (s.get("internalFilterLimits") or {}).get("litres"),
+        payload_fn=_filter_payload("internal", "litres"),
+        options_path=("filters", "internal", "litres"),
+        available_fn=lambda s: (s.get("internalFilterLimits") or {}).get("litres")
+        is not None,
+    ),
+    ZipAssistNumberEntityDescription(
+        key="internal_filter_days",
+        translation_key="internal_filter_days",
+        native_unit_of_measurement="days",
+        mode=NumberMode.BOX,
+        icon="mdi:calendar-clock",
+        value_fn=lambda s: (s.get("internalFilterLimits") or {}).get("days"),
+        payload_fn=_filter_payload("internal", "days"),
+        options_path=("filters", "internal", "days"),
+        available_fn=lambda s: (s.get("internalFilterLimits") or {}).get("days")
+        is not None,
+    ),
+    ZipAssistNumberEntityDescription(
+        key="external_filter_litres",
+        translation_key="external_filter_litres",
+        native_unit_of_measurement="L",
+        mode=NumberMode.BOX,
+        icon="mdi:water-filter",
+        value_fn=lambda s: (s.get("externalFilterLimits") or {}).get("litres"),
+        payload_fn=_filter_payload("external", "litres"),
+        options_path=("filters", "external", "litres"),
+        available_fn=lambda s: (s.get("externalFilterLimits") or {}).get("litres")
+        is not None,
+    ),
+    ZipAssistNumberEntityDescription(
+        key="external_filter_days",
+        translation_key="external_filter_days",
+        native_unit_of_measurement="days",
+        mode=NumberMode.BOX,
+        icon="mdi:calendar-clock",
+        value_fn=lambda s: (s.get("externalFilterLimits") or {}).get("days"),
+        payload_fn=_filter_payload("external", "days"),
+        options_path=("filters", "external", "days"),
+        available_fn=lambda s: (s.get("externalFilterLimits") or {}).get("days")
+        is not None,
     ),
 )
 
 
 class ZipAssistNumber(CoordinatorEntity, NumberEntity):
-    """Number entity for a ZipAssist hydrotap temperature setting."""
+    """Number entity for a ZipAssist hydrotap setting."""
 
     entity_description: ZipAssistNumberEntityDescription
 
@@ -94,35 +226,38 @@ class ZipAssistNumber(CoordinatorEntity, NumberEntity):
     def _set_range_from_options(self, data: dict) -> None:
         """Set native_min/max/step from settings-options data."""
         options = (data.get("settings_options") or {}).get(self._hydrotap_id, {})
-        water = options.get("water", {})
-        attr = self.entity_description.attr_fn({})
-        water_type = water.get(attr)
-        if isinstance(water_type, dict):
-            temp_opts = water_type.get("temp")
-            if isinstance(temp_opts, dict):
-                self._attr_native_min_value = float(temp_opts.get("min", 0))
-                self._attr_native_max_value = float(temp_opts.get("max", 100))
-                self._attr_native_step = float(temp_opts.get("step", 1))
+        # Walk the options_path to find the range dict
+        current: dict = options
+        for key in self.entity_description.options_path:
+            if isinstance(current, dict):
+                current = current.get(key, {})
+            else:
+                current = {}
+        if isinstance(current, dict) and "min" in current:
+            self._attr_native_min_value = float(current.get("min", 0))
+            self._attr_native_max_value = float(current.get("max", 100))
+            self._attr_native_step = float(current.get("step", 1))
 
     @property
     def native_value(self) -> float | None:
-        """Return the current temperature."""
+        """Return the current value."""
         settings = (self.coordinator.data.get("settings") or {}).get(
             self._hydrotap_id, {}
         )
         return self.entity_description.value_fn(settings)
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set the temperature via the API."""
-        attr = self.entity_description.attr_fn({})
-        payload = {attr: {"temp": value}}
+        """Set the value via the API."""
+        payload = self.entity_description.payload_fn(value)
         success = await self.coordinator.client.update_settings(
             self._hydrotap_id, payload
         )
         if success:
             await self.coordinator.async_request_refresh()
         else:
-            _LOGGER.error("Failed to set %s temp for %s", attr, self._hydrotap_id)
+            _LOGGER.error(
+                "Failed to set %s for %s", self.entity_description.key, self._hydrotap_id
+            )
 
 
 async def async_setup_entry(
@@ -142,8 +277,7 @@ async def async_setup_entry(
             continue
         tap_settings = settings_map.get(hid, {})
         for description in NUMBER_TYPES:
-            # Only create if the feature is available (isFeature=true)
-            if description.value_fn(tap_settings) is not None:
+            if description.available_fn(tap_settings):
                 entities.append(ZipAssistNumber(coordinator, hydrotap, description))
 
     _LOGGER.debug("Creating %d number entities", len(entities))

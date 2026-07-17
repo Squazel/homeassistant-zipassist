@@ -59,6 +59,30 @@
             },
             "chilled_temp": {
                 "name": "Chilled Temperature"
+            },
+            "boiling_duration": {
+                "name": "Boiling Dispense Duration"
+            },
+            "chilled_duration": {
+                "name": "Chilled Dispense Duration"
+            },
+            "sparkling_duration": {
+                "name": "Sparkling Dispense Duration"
+            },
+            "ambient_duration": {
+                "name": "Ambient Dispense Duration"
+            },
+            "internal_filter_litres": {
+                "name": "Internal Filter Litres Limit"
+            },
+            "internal_filter_days": {
+                "name": "Internal Filter Days Limit"
+            },
+            "external_filter_litres": {
+                "name": "External Filter Litres Limit"
+            },
+            "external_filter_days": {
+                "name": "External Filter Days Limit"
             }
         },
         "binary_sensor": {
