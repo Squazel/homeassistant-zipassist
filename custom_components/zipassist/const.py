@@ -25,7 +25,7 @@ API_COUNTRIES = "/api/countries"
 API_TIMEZONES = "/api/timezones"
 
 # Platforms
-PLATFORMS = ["sensor", "number", "binary_sensor"]
+PLATFORMS = ["sensor", "number", "binary_sensor", "switch", "select", "time"]
 
 # Attributes
 ATTR_HYDROTAP_ID = "hydrotap_id"

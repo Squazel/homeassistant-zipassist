@@ -16,3 +16,36 @@ clear_system_fault:
       example: "fault-1"
       selector:
         text: {}
+
+set_temperature:
+  name: Set Temperature
+  description: Set the boiling or chilled water temperature on a ZipAssist hydrotap.
+  fields:
+    device_id:
+      name: Device ID
+      description: The hydrotap ID (UUID) of the device.
+      required: true
+      example: "631a3385-301b-4c9c-97ed-3a1a50061f5c"
+      selector:
+        text: {}
+    water_type:
+      name: Water Type
+      description: The water type to set temperature for.
+      required: true
+      default: "boiling"
+      selector:
+        select:
+          options:
+            - "boiling"
+            - "chilled"
+    temperature:
+      name: Temperature
+      description: Target temperature in degrees Celsius.
+      required: true
+      example: 98.0
+      selector:
+        number:
+          min: 5
+          max: 100
+          step: 0.5
+          unit_of_measurement: "°C"

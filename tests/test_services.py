@@ -13,7 +13,21 @@ sys.path.insert(
     os.path.join(os.path.dirname(__file__), "..", "custom_components"),
 )
 
-from zipassist.services import async_setup_services, async_unload_services  # noqa: E402
+from zipassist.services import (  # noqa: E402
+    SERVICE_CLEAR_FAULT,
+    SERVICE_SET_TEMPERATURE,
+    async_setup_services,
+    async_unload_services,
+)
+
+
+def _get_handler(hass_mock, service_name: str):
+    """Extract the handler registered for a given service name."""
+    for call in hass_mock.services.async_register.call_args_list:
+        args = call.args
+        if args[0] == "zipassist" and args[1] == service_name:
+            return args[2]
+    return None
 
 
 class TestServices:
@@ -30,16 +44,17 @@ class TestServices:
 
         await async_setup_services(hass)
 
-        hass.services.async_register.assert_called_once()
-        call_args = hass.services.async_register.call_args
-        assert call_args.args[0] == "zipassist"
-        assert call_args.args[1] == "clear_system_fault"
+        assert hass.services.async_register.call_count == 2
+        # Check both services were registered
+        registered = {
+            call.args[1]
+            for call in hass.services.async_register.call_args_list
+        }
+        assert registered == {SERVICE_CLEAR_FAULT, SERVICE_SET_TEMPERATURE}
 
         # Unload
         async_unload_services(hass)
-        hass.services.async_remove.assert_called_once_with(
-            "zipassist", "clear_system_fault"
-        )
+        assert hass.services.async_remove.call_count == 2
 
     @pytest.mark.asyncio
     async def test_clear_fault_success(
@@ -57,15 +72,9 @@ class TestServices:
 
         await async_setup_services(hass)
 
-        # Get the registered handler
-        register_call = hass.services.async_register.call_args
-        handler = register_call.kwargs.get(
-            "schema", register_call.args[2] if len(register_call.args) > 2 else None
-        )
-        # Actually the handler is the second positional arg
-        handler = register_call.args[2]
+        handler = _get_handler(hass, SERVICE_CLEAR_FAULT)
+        assert handler is not None
 
-        # Call the handler
         await handler(
             MagicMock(
                 data={
@@ -96,9 +105,7 @@ class TestServices:
 
         await async_setup_services(hass)
 
-        register_call = hass.services.async_register.call_args
-        handler = register_call.args[2]
-
+        handler = _get_handler(hass, SERVICE_CLEAR_FAULT)
         await handler(
             MagicMock(
                 data={"device_id": "unknown-id", "fault_id": "fault-1"}
@@ -111,7 +118,6 @@ class TestServices:
     async def test_clear_fault_no_coordinator(self, mock_coordinator) -> None:
         """Test clear_fault with no coordinator in hass.data."""
         hass = MagicMock()
-        # Put a non-coordinator in hass.data
         hass.data = {
             "zipassist": {
                 "test_entry": MagicMock(client=None),  # no client attr
@@ -122,9 +128,7 @@ class TestServices:
 
         await async_setup_services(hass)
 
-        register_call = hass.services.async_register.call_args
-        handler = register_call.args[2]
-
+        handler = _get_handler(hass, SERVICE_CLEAR_FAULT)
         await handler(
             MagicMock(
                 data={"device_id": "any", "fault_id": "fault-1"}
@@ -132,3 +136,103 @@ class TestServices:
         )
 
         mock_coordinator.client.clear_fault.assert_not_called()
+
+    # ------------------------------------------------------- set_temperature
+
+    @pytest.mark.asyncio
+    async def test_set_temperature_success(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test set_temperature service with valid device."""
+        hass = MagicMock()
+        hass.data = {
+            "zipassist": {
+                "test_entry": mock_coordinator,
+            }
+        }
+        hass.services = MagicMock()
+        hass.services.async_register = MagicMock()
+
+        await async_setup_services(hass)
+
+        handler = _get_handler(hass, SERVICE_SET_TEMPERATURE)
+        assert handler is not None
+
+        await handler(
+            MagicMock(
+                data={
+                    "device_id": sample_hydrotap["hydrotapId"],
+                    "water_type": "boiling",
+                    "temperature": 98.0,
+                }
+            )
+        )
+
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            sample_hydrotap["hydrotapId"],
+            {"boiling": {"temp": 98.0}},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_set_temperature_chilled(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test set_temperature for chilled water."""
+        hass = MagicMock()
+        hass.data = {
+            "zipassist": {
+                "test_entry": mock_coordinator,
+            }
+        }
+        hass.services = MagicMock()
+        hass.services.async_register = MagicMock()
+
+        await async_setup_services(hass)
+
+        handler = _get_handler(hass, SERVICE_SET_TEMPERATURE)
+        await handler(
+            MagicMock(
+                data={
+                    "device_id": sample_hydrotap["hydrotapId"],
+                    "water_type": "chilled",
+                    "temperature": 5.0,
+                }
+            )
+        )
+
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            sample_hydrotap["hydrotapId"],
+            {"chilled": {"temp": 5.0}},
+        )
+
+    @pytest.mark.asyncio
+    async def test_set_temperature_unknown_device(
+        self, mock_coordinator
+    ) -> None:
+        """Test set_temperature with unknown device_id."""
+        mock_coordinator.data["hydrotaps"] = []
+
+        hass = MagicMock()
+        hass.data = {
+            "zipassist": {
+                "test_entry": mock_coordinator,
+            }
+        }
+        hass.services = MagicMock()
+        hass.services.async_register = MagicMock()
+
+        await async_setup_services(hass)
+
+        handler = _get_handler(hass, SERVICE_SET_TEMPERATURE)
+        await handler(
+            MagicMock(
+                data={
+                    "device_id": "unknown-id",
+                    "water_type": "boiling",
+                    "temperature": 98.0,
+                }
+            )
+        )
+
+        mock_coordinator.client.update_settings.assert_not_called()

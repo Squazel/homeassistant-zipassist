@@ -13,6 +13,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 SERVICE_CLEAR_FAULT = "clear_system_fault"
+SERVICE_SET_TEMPERATURE = "set_temperature"
 
 CLEAR_FAULT_SCHEMA = vol.Schema(
     {
@@ -20,6 +21,30 @@ CLEAR_FAULT_SCHEMA = vol.Schema(
         vol.Required("fault_id"): str,
     }
 )
+
+SET_TEMPERATURE_SCHEMA = vol.Schema(
+    {
+        vol.Required("device_id"): str,
+        vol.Required("water_type"): vol.In(["boiling", "chilled"]),
+        vol.Required("temperature"): vol.Coerce(float),
+    }
+)
+
+
+def _find_coordinator_for_device(
+    hass: HomeAssistant, device_id: str
+) -> tuple[object | None, str | None]:
+    """Find the coordinator and hydrotap_id that owns the given device_id.
+
+    Returns (coordinator, hydrotap_id) or (None, None) if not found.
+    """
+    for coord in hass.data.get(DOMAIN, {}).values():
+        if not hasattr(coord, "client"):
+            continue
+        for h in coord.data.get("hydrotaps", []):
+            if h.get("hydrotapId") == device_id:
+                return coord, device_id
+    return None, None
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
@@ -30,27 +55,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         device_id: str = call.data["device_id"]
         fault_id: str = call.data["fault_id"]
 
-        # Find the coordinator for this device
-        coordinator = None
-        for entry_id, coord in hass.data.get(DOMAIN, {}).items():
-            if not hasattr(coord, "client"):
-                continue
-            coordinator = coord
-            break
-
+        coordinator, hydrotap_id = _find_coordinator_for_device(hass, device_id)
         if coordinator is None:
-            _LOGGER.error("No ZipAssist coordinator found")
-            return
-
-        # Find the hydrotap ID from the device ID
-        hydrotap_id = None
-        for h in coordinator.data.get("hydrotaps", []):
-            if h.get("hydrotapId") == device_id:
-                hydrotap_id = device_id
-                break
-
-        if not hydrotap_id:
-            _LOGGER.error("Device %s not found", device_id)
+            _LOGGER.error("Device %s not found in any ZipAssist entry", device_id)
             return
 
         now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+0000")
@@ -65,6 +72,32 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "Failed to clear fault %s on %s", fault_id, hydrotap_id
             )
 
+    async def _handle_set_temperature(call: ServiceCall) -> None:
+        """Handle the set_temperature service call."""
+        device_id: str = call.data["device_id"]
+        water_type: str = call.data["water_type"]
+        temperature: float = call.data["temperature"]
+
+        coordinator, hydrotap_id = _find_coordinator_for_device(hass, device_id)
+        if coordinator is None:
+            _LOGGER.error("Device %s not found in any ZipAssist entry", device_id)
+            return
+
+        payload = {water_type: {"temp": temperature}}
+        success = await coordinator.client.update_settings(hydrotap_id, payload)
+        if success:
+            _LOGGER.info(
+                "Set %s temperature to %.1f°C on %s",
+                water_type,
+                temperature,
+                hydrotap_id,
+            )
+            await coordinator.async_request_refresh()
+        else:
+            _LOGGER.error(
+                "Failed to set %s temperature on %s", water_type, hydrotap_id
+            )
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_CLEAR_FAULT,
@@ -72,8 +105,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         schema=CLEAR_FAULT_SCHEMA,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_TEMPERATURE,
+        _handle_set_temperature,
+        schema=SET_TEMPERATURE_SCHEMA,
+    )
+
 
 def async_unload_services(hass: HomeAssistant) -> None:
     """Unregister ZipAssist services."""
-    if hass.services.has_service(DOMAIN, SERVICE_CLEAR_FAULT):
-        hass.services.async_remove(DOMAIN, SERVICE_CLEAR_FAULT)
+    for service in (SERVICE_CLEAR_FAULT, SERVICE_SET_TEMPERATURE):
+        if hass.services.has_service(DOMAIN, service):
+            hass.services.async_remove(DOMAIN, service)
