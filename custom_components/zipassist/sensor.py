@@ -42,6 +42,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="filter_litres_remaining",
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:water-opacity",
         value_fn=lambda h: h.get("filterLifeRemainingLitres"),
     ),
     ZipAssistSensorEntityDescription(
@@ -49,6 +50,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="filter_days_remaining",
         native_unit_of_measurement="days",
         state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:calendar-clock",
         value_fn=lambda h: h.get("filterLifeRemainingDays"),
     ),
     ZipAssistSensorEntityDescription(
@@ -56,6 +58,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="filter_estimated_days",
         native_unit_of_measurement="days",
         state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:calendar-sync",
         value_fn=lambda h: h.get("filterLifeRemainingEstimated"),
     ),
     ZipAssistSensorEntityDescription(
@@ -63,6 +66,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="average_daily_usage",
         native_unit_of_measurement="L/day",
         state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:water-percent",
         value_fn=lambda h: h.get("averageDailyUsage"),
     ),
     ZipAssistSensorEntityDescription(
@@ -70,6 +74,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="peak_hourly_usage",
         native_unit_of_measurement="L/h",
         state_class=SensorStateClass.MEASUREMENT,
+        icon="mdi:water-sync",
         value_fn=lambda h: h.get("peakHourlyUsage"),
     ),
     ZipAssistSensorEntityDescription(
@@ -82,18 +87,21 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
     ZipAssistSensorEntityDescription(
         key="status",
         translation_key="status",
+        icon="mdi:information-outline",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: h.get("status"),
     ),
     ZipAssistSensorEntityDescription(
         key="serial_number",
         translation_key="serial_number",
+        icon="mdi:numeric",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: h.get("serialNumber"),
     ),
     ZipAssistSensorEntityDescription(
         key="firmware_version",
         translation_key="firmware_version",
+        icon="mdi:chip",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: h.get("firmwareVersion"),
     ),
@@ -144,6 +152,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="litres_filtered_internal",
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:water-filter",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: None,
     ),
@@ -152,6 +161,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="litres_filtered_external",
         native_unit_of_measurement=UnitOfVolume.LITERS,
         state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:water-filter",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: None,
     ),
@@ -160,6 +170,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="days_filtered_internal",
         native_unit_of_measurement="days",
         state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:calendar-check",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: None,
     ),
@@ -168,6 +179,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         translation_key="days_filtered_external",
         native_unit_of_measurement="days",
         state_class=SensorStateClass.TOTAL_INCREASING,
+        icon="mdi:calendar-check",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: None,
     ),
@@ -204,6 +216,21 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.coordinator.last_update_success
+
+    def _resolve_sleep_mode_name(self, code: int | str | None) -> str | None:
+        """Resolve a numeric sleep mode code to a human-readable name.
+
+        Uses the sleep_modes list fetched by the coordinator from
+        /api/sleep-modes. Falls back to the raw code if no match is found.
+        """
+        if code is None:
+            return None
+        sleep_modes = self.coordinator.data.get("sleep_modes") or []
+        for mode in sleep_modes:
+            mode_code = mode.get("code", mode.get("sleepModeCode", mode.get("id")))
+            if str(mode_code) == str(code):
+                return mode.get("name", str(code))
+        return str(code)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -264,6 +291,10 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
                 attrs["time_since_last_log"] = status_log.get("timeSinceLastLog")
                 attrs["hydrotap_active"] = status_log.get("hydrotapActive")
 
+        # Sleep mode: expose raw code as attribute
+        if key == "sleep_mode_status" and status_log:
+            attrs["sleep_mode_code"] = status_log.get("sleepModeStatus")
+
         # Hydrotap list sensors: include location and permissions
         if hydrotap and key in (
             "filter_litres_remaining",
@@ -310,7 +341,9 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
             "wifi_signal_strength": lambda l: l.get("wifiSignalStrength"),
             "energy_since_last_log": lambda l: l.get("energyKwhSinceLastLog"),
             "energy_total": lambda l: l.get("energyKwhTotal"),
-            "sleep_mode_status": lambda l: l.get("sleepModeStatus"),
+            "sleep_mode_status": lambda l: self._resolve_sleep_mode_name(
+                l.get("sleepModeStatus")
+            ),
             "litres_filtered_internal": lambda l: l.get("litresFilteredInternal"),
             "litres_filtered_external": lambda l: l.get("litresFilteredExternal"),
             "days_filtered_internal": lambda l: l.get("daysFilteredInternal"),

@@ -59,6 +59,7 @@ NUMBER_TYPES: tuple[ZipAssistNumberEntityDescription, ...] = (
         translation_key="boiling_temp",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         mode=NumberMode.BOX,
+        icon="mdi:thermometer-high",
         value_fn=lambda s: (
             s.get("boiling", {}).get("temp")
             if s.get("boiling", {}).get("isFeature")
@@ -73,6 +74,7 @@ NUMBER_TYPES: tuple[ZipAssistNumberEntityDescription, ...] = (
         translation_key="chilled_temp",
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         mode=NumberMode.BOX,
+        icon="mdi:thermometer-low",
         value_fn=lambda s: (
             s.get("chilled", {}).get("temp")
             if s.get("chilled", {}).get("isFeature")

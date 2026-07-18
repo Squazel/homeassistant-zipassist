@@ -1,5 +1,34 @@
 # ZipAssist CMMS — Home Assistant Integration Plan
 
+> **Status:** ✅ Core complete — 70 entities across 6 platforms, 2 services, config flow, full API client (30 methods). See [Implementation Status](#implementation-status) for details.
+
+## Implementation Status
+
+| Area | Status | Details |
+|---|---|---|
+| Config flow (UI auth) | ✅ Done | Email + password + optional base_url; reauth support |
+| Coordinator polling | ✅ Done | 300s interval; fetches hydrotaps, settings, options, faults, logs, sleep modes |
+| API client | ✅ Done | 30 methods covering all known endpoints; JWT auth with auto-refresh |
+| Sensor platform | ✅ Done | 18 sensors (filter life, usage, status, diagnostics) |
+| Binary sensor platform | ✅ Done | 1 binary sensor (`system_fault`) |
+| Switch platform | ✅ Done | 20 switches (safety toggles + energy timer actives) |
+| Number platform | ✅ Done | 10 numbers (temps, durations, filter limits) |
+| Select platform | ✅ Done | 3 selects (sleep mode, energy mode, sync period) |
+| Time platform | ✅ Done | 18 time entities (energy on/off schedules) |
+| Services | ✅ Done | `clear_system_fault`, `set_temperature` |
+| Entity icons | ✅ Done | All entities have explicit icons or device_class |
+| Sleep mode name resolution | ✅ Done | Numeric codes resolved to names via `/api/sleep-modes` |
+| Safety toggles as switches | ✅ Done | `safety_lock` & `hot_isolation` are writable switches (not binary sensors) |
+| PATCH error handling | ✅ Done | Accepts 200/204; logs failures with status + body |
+| Tests | 🔲 Partial | Unit tests exist for client, config_flow, coordinator, helpers, services |
+| HACS submission | 🔲 Pending | `hacs.json` exists but not yet submitted |
+| PIN settings entity | 🔲 Not started | `security.pin` in settings not exposed |
+| Language select | 🔲 Not started | `language` field in settings not exposed |
+| Allow safety setting change | 🔲 Not started | `allowSafetySettingChange` toggle not exposed |
+| Zip managed indicator | 🔲 Not started | `zipManaged` flag not exposed as entity |
+| Usage graphs in HA | 🔲 Not started | API methods exist but no HA sensors/entities consume them |
+| Notes read/write | 🔲 Not started | API methods exist but no HA entities consume them |
+
 ## Architecture Overview
 
 ```
@@ -8,8 +37,7 @@ ZipAssist Cloud API (zipassist.zipindustries.com)
         ▼
 ┌─────────────────────────────┐
 │   ZipAssistClient           │  → aiohttp session, JWT auth
-│   (custom_components/       │
-│    zipassist/client.py)     │
+│   (client.py)               │    30 API methods
 └──────────┬──────────────────┘
            │
            ▼
@@ -25,17 +53,15 @@ ZipAssist Cloud API (zipassist.zipindustries.com)
 │   Each HydroTap → 1 Device  │
 │   (via DeviceRegistry)      │
 │                             │
-│   Sensors per device:       │
-│   - filter_litres_remaining │
-│   - filter_days_remaining   │
-│   - filter_estimated_days   │
-│   - average_daily_usage     │
-│   - peak_hourly_usage       │
-│   - last_sync_time          │
-│   - status                  │
-│   - serial_number           │
-│   - firmware_version        │
-│   - ...settings as entities │
+│   ✅ 18 sensors             │
+│   ✅  1 binary sensor       │
+│   ✅ 20 switches            │
+│   ✅ 10 numbers             │
+│   ✅  3 selects             │
+│   ✅ 18 times               │
+│   ─────────────────────     │
+│   ✅ 70 total entities      │
+│   ✅  2 services            │
 └─────────────────────────────┘
 ```
 
@@ -135,41 +161,130 @@ permissions {view, edit}, hydrotapGroups[], groupName, lastSyncTimestamp
 
 ## HA Integration Design Decisions
 
-### 1. Each HydroTap = One HA Device
+### 1. Each HydroTap = One HA Device ✅
 - Domain: `zipassist`
 - Device identified by `hydrotapId` (UUID v4)
 - Device name: `{buildingName} - {level}/{location}` e.g. `The Warehouse - 1/Kitchen`
 - Model (`moduleName`, e.g. "BC 100/75") stored in device `model` metadata
 - The generic "HydroTap" label from the API is discarded
 
-### 2. Coordinator polling
+### 2. Coordinator polling ✅
 - Default interval: 300 seconds (5 min)
-- Fetches: latest status log, filter usage, settings
-- Separate polling for: current faults (more critical)
+- Fetches per cycle: hydrotap list, settings, settings-options, current faults, latest status log (per tap), sleep modes (shared)
+- Each per-tap fetch is independently error-tolerant (one failing tap doesn't block others)
 
-### 3. Sensors
-Primary read-only sensors (from hydrotap detail + latest status log):
-- `sensor.<name>_filter_litres_remaining` (number)
-- `sensor.<name>_filter_days_remaining` (number)
-- `sensor.<name>_filter_estimated_days` (number)
-- `sensor.<name>_average_daily_usage` (number, L/day)
-- `sensor.<name>_peak_hourly_usage` (number, L/hr)
-- `sensor.<name>_last_sync` (timestamp)
-- `sensor.<name>_status` (string)
+### 3. Entity Platforms ✅
 
-### 4. Settings as entities (read/write where permitted)
-From the settings response, key groups:
-- **Temperature:** boiling, ambient, chilled (in °C)
-- **Dispense:** max duration per water type
-- **Energy/OnOff Timers:** daily/weekday/weekend schedules
-- **Filter limits:** litres, days
-- **Safety:** lock enabled, hot isolation
-- **Security:** PIN settings
-- **Sleep mode:** active mode code
+| Platform | File | Count | Notes |
+|---|---|---|---|
+| Sensor | `sensor.py` | 18 | Filter life, usage, status, diagnostics, status log fields |
+| Binary Sensor | `binary_sensor.py` | 1 | `system_fault` (PROBLEM device class) |
+| Switch | `switch.py` | 20 | Safety toggles (2) + energy timer actives (18) |
+| Number | `number.py` | 10 | Temps (2), dispense durations (4), filter limits (4) |
+| Select | `select.py` | 3 | Sleep mode, energy mode, sync period |
+| Time | `time.py` | 18 | Energy on/off schedule times |
+| **Total** | | **70** | |
 
-### 5. Services (future)
-- `zipassist.clear_system_fault` — clear a fault on a device
-- `zipassist.set_temperature` — change a temp setting
+### 4. Services ✅
+
+| Service | File | Description |
+|---|---|---|
+| `zipassist.clear_system_fault` | `services.py` + `services.yaml` | Clear a fault by `device_id` + `fault_id` |
+| `zipassist.set_temperature` | `services.py` + `services.yaml` | Set boiling/chilled temp by `device_id` + `water_type` + `temperature` |
+
+### 5. Settings Write (PATCH) Behaviour ✅
+
+The API's `PATCH /api/hydrotaps/{id}/settings` endpoint may return `200` or `204`
+on success. The client (`update_settings`) accepts both. On failure, the response
+status and body are logged at ERROR level for debugging.
+
+Key details:
+- **Headers:** `Content-Type: application/json` and `Accept: application/json` are sent explicitly.
+- **401 retry:** If the token expired between the pre-check and the PATCH, the client re-authenticates and retries once.
+- **Payload shape:** The PATCH body is a partial settings object — only the field(s) being changed are sent (e.g. `{"hotIsolationEnabled": true}`).
+
+### 6. Sleep Mode Name Resolution ✅
+The `sleep_mode_status` sensor resolves numeric codes to human-readable names via `/api/sleep-modes` (fetched once by the coordinator, shared across all hydrotaps). The raw numeric code is exposed as an `sleep_mode_code` attribute. The `sleep_mode` select entity uses the same data for its options list.
+
+### 7. Safety Toggles as Switches ✅
+`safety_lock` and `hot_isolation` are **writable switches** (in `switch.py`), not read-only binary sensors. They were removed from `binary_sensor.py` to avoid duplicate entities. Toggling them PATCHes the setting to the API.
+
+### 8. Entity Icons ✅
+Every entity has an explicit `icon` or a `device_class` that implies one. See the [Entity Icons](#entity-icons-reference) reference table below.
+
+## Entity Icons Reference
+
+All entities have explicit icons or device_class. ✅ = complete.
+
+#### Sensors (`sensor.py`) — 18 entities
+
+| Entity key | Icon | Notes |
+|---|---|---|
+| `filter_litres_remaining` | `mdi:water-opacity` | |
+| `filter_days_remaining` | `mdi:calendar-clock` | |
+| `filter_estimated_days` | `mdi:calendar-sync` | |
+| `average_daily_usage` | `mdi:water-percent` | |
+| `peak_hourly_usage` | `mdi:water-sync` | |
+| `last_sync` | _(none)_ | Uses `device_class: TIMESTAMP` |
+| `status` | `mdi:information-outline` | |
+| `serial_number` | `mdi:numeric` | |
+| `firmware_version` | `mdi:chip` | |
+| `system_fault_details` | `mdi:alert-circle` | ✅ |
+| `wifi_signal_strength` | _(none)_ | Uses `device_class: SIGNAL_STRENGTH` |
+| `energy_since_last_log` | _(none)_ | Uses `device_class: ENERGY` |
+| `energy_total` | _(none)_ | Uses `device_class: ENERGY` |
+| `sleep_mode_status` | `mdi:sleep` | ✅ Code resolved to name via `/api/sleep-modes` |
+| `litres_filtered_internal` | `mdi:water-filter` | ✅ |
+| `litres_filtered_external` | `mdi:water-filter` | ✅ |
+| `days_filtered_internal` | `mdi:calendar-check` | ✅ |
+| `days_filtered_external` | `mdi:calendar-check` | ✅ |
+
+#### Numbers (`number.py`) — 10 entities
+
+| Entity key | Icon | Notes |
+|---|---|---|
+| `boiling_temp` | `mdi:thermometer-high` | ✅ |
+| `chilled_temp` | `mdi:thermometer-low` | ✅ |
+| `boiling_duration` | `mdi:timer-outline` | ✅ |
+| `chilled_duration` | `mdi:timer-outline` | ✅ |
+| `sparkling_duration` | `mdi:timer-outline` | ✅ |
+| `ambient_duration` | `mdi:timer-outline` | ✅ |
+| `internal_filter_litres` | `mdi:water-filter` | ✅ |
+| `internal_filter_days` | `mdi:calendar-clock` | ✅ |
+| `external_filter_litres` | `mdi:water-filter` | ✅ |
+| `external_filter_days` | `mdi:calendar-clock` | ✅ |
+
+#### Switches (`switch.py`) — 20 entities
+
+| Entity key | Icon | Notes |
+|---|---|---|
+| `safety_lock` | `mdi:lock` | ✅ Writable — PATCHes `safetyLockEnabled` |
+| `hot_isolation` | `mdi:water-off` | ✅ Writable — PATCHes `hotIsolationEnabled` |
+| All timer on/off switches (18) | `mdi:timer-play-outline` / `mdi:timer-stop-outline` | ✅ |
+
+#### Binary Sensors (`binary_sensor.py`) — 1 entity
+
+| Entity key | Icon | Notes |
+|---|---|---|
+| `system_fault` | _(none)_ | Uses `device_class: PROBLEM`. Read-only diagnostic. |
+
+> **Note:** `safety_lock` and `hot_isolation` are **switches** (in `switch.py`), not binary sensors.
+> They were removed from `binary_sensor.py` to avoid duplicate read-only entities.
+
+#### Selects (`select.py`) — 3 entities
+
+| Entity key | Icon | Notes |
+|---|---|---|
+| `sleep_mode` | `mdi:sleep` | ✅ |
+| `energy_mode` | `mdi:power-plug` | ✅ |
+| `sync_period` | `mdi:sync` | ✅ |
+
+#### Times (`time.py`) — 18 entities
+
+| Entity key | Icon | Notes |
+|---|---|---|
+| All on-time entities | `mdi:clock-start` | ✅ |
+| All off-time entities | `mdi:clock-end` | ✅ |
 
 ## Data Shape Notes
 
@@ -396,18 +511,36 @@ homeassistant-zipassist/
 │   └── zipassist/
 │       ├── __init__.py          # async_setup_entry, device registry
 │       ├── manifest.json        # HA integration manifest
-│       ├── config_flow.py       # UI config flow (email, password)
+│       ├── config_flow.py       # UI config flow (email, password, reauth)
 │       ├── const.py             # Domain, config keys, API paths
-│       ├── client.py            # ZipAssistClient (auth + API)
-│       ├── coordinator.py       # DataUpdateCoordinator
-│       ├── sensor.py            # Sensor entities
-│       ├── switch.py            # (future) toggle settings
-│       ├── number.py            # (future) numeric settings
-│       └── strings.json         # i18n strings
+│       ├── client.py            # ZipAssistClient (auth + 30 API methods)
+│       ├── coordinator.py       # DataUpdateCoordinator (300s polling)
+│       ├── sensor.py            # 18 sensor entities
+│       ├── binary_sensor.py     # 1 binary sensor (system_fault)
+│       ├── switch.py            # 20 switch entities (safety + energy timers)
+│       ├── number.py            # 10 number entities (temps, durations, filters)
+│       ├── select.py            # 3 select entities (sleep, energy mode, sync)
+│       ├── time.py              # 18 time entities (energy schedules)
+│       ├── services.py          # 2 services (clear_fault, set_temperature)
+│       ├── services.yaml        # Service definitions for HA
+│       ├── helpers.py           # Shared helpers (device_name, etc.)
+│       ├── strings.json         # i18n strings
+│       └── translations/
+│           └── en.json          # English translations
 ├── exploration/
 │   └── explore.py               # Live API exploration script
 ├── tests/
-│   └── test_client.py           # Unit tests
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── test_client.py
+│   ├── test_config_flow.py
+│   ├── test_coordinator.py
+│   ├── test_entities.py
+│   ├── test_helpers.py
+│   └── test_services.py
+├── tools/
+│   ├── __init__.py
+│   └── commands.py
 ├── .env / .env.example
 ├── .gitignore
 ├── pyproject.toml

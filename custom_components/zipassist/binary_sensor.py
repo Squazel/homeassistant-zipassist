@@ -36,20 +36,6 @@ class ZipAssistBinarySensorEntityDescription(BinarySensorEntityDescription):
 
 BINARY_SENSOR_TYPES: tuple[ZipAssistBinarySensorEntityDescription, ...] = (
     ZipAssistBinarySensorEntityDescription(
-        key="safety_lock",
-        translation_key="safety_lock",
-        value_fn=lambda s: s.get("safetyLockEnabled"),
-        available_fn=lambda so: so.get("safety", {}).get("safetyLockEnabled", False),
-    ),
-    ZipAssistBinarySensorEntityDescription(
-        key="hot_isolation",
-        translation_key="hot_isolation",
-        value_fn=lambda s: s.get("hotIsolationEnabled"),
-        available_fn=lambda so: so.get("safety", {}).get(
-            "hotIsolationEnabled", False
-        ),
-    ),
-    ZipAssistBinarySensorEntityDescription(
         key="system_fault",
         translation_key="system_fault",
         device_class=BinarySensorDeviceClass.PROBLEM,
@@ -92,16 +78,11 @@ class ZipAssistBinarySensor(CoordinatorEntity, BinarySensorEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return true if the safety feature is enabled."""
-        if self.entity_description.key == "system_fault":
-            faults = (self.coordinator.data.get("faults") or {}).get(
-                self._hydrotap_id, []
-            )
-            return self.entity_description.value_fn(faults)
-        settings = (self.coordinator.data.get("settings") or {}).get(
-            self._hydrotap_id, {}
+        """Return true if there are active system faults."""
+        faults = (self.coordinator.data.get("faults") or {}).get(
+            self._hydrotap_id, []
         )
-        return self.entity_description.value_fn(settings)
+        return self.entity_description.value_fn(faults)
 
 
 async def async_setup_entry(

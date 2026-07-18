@@ -58,6 +58,15 @@ def _jwt_expiry(token: str) -> float:
         return 0
 
 
+async def _safe_text(resp: aiohttp.ClientResponse) -> str:
+    """Safely read response text, returning a truncated string."""
+    try:
+        text = await resp.text()
+        return text[:500]
+    except Exception:
+        return "<unreadable>"
+
+
 class ZipAssistClient:
     """Client for interacting with the ZipAssist CMMS API."""
 
@@ -218,17 +227,41 @@ class ZipAssistClient:
         await self._ensure_fresh_token()
         url = f"{self._base_url}{API_HYDROTAPS}/{hydrotap_id}/settings"
         session = await self._get_session()
+        headers = {
+            **self._auth_headers,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
         async with session.patch(
-            url, headers=self._auth_headers, json=settings
+            url, headers=headers, json=settings
         ) as resp:
+            if resp.status in (200, 204):
+                return True
             if resp.status == 401:
                 _LOGGER.debug("PATCH 401 — re-authenticating and retrying")
                 await self.authenticate()
+                retry_headers = {
+                    **self._auth_headers,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                }
                 async with session.patch(
-                    url, headers=self._auth_headers, json=settings
+                    url, headers=retry_headers, json=settings
                 ) as retry_resp:
-                    return retry_resp.status == 200
-            return resp.status == 200
+                    if retry_resp.status in (200, 204):
+                        return True
+                    _LOGGER.error(
+                        "PATCH retry failed: %s — %s",
+                        retry_resp.status,
+                        await _safe_text(retry_resp),
+                    )
+                    return False
+            _LOGGER.error(
+                "PATCH failed: %s — %s",
+                resp.status,
+                await _safe_text(resp),
+            )
+            return False
 
     # ------------------------------------------------------------------ logs
 
