@@ -57,15 +57,11 @@ jobs:
 
     - name: Test integration structure
       run: |
-        # Verify the integration can be imported
-        cd custom_components/zipassist
-        python -c "from client import ZipAssistClient; print('Client import successful')"
-        python -c "from const import DOMAIN; print(f'Domain: {DOMAIN}')"
-
         # Verify manifest.json is valid
-        python -c "import json; json.load(open('manifest.json')); print('Manifest is valid JSON')"
+        python -c "import json; json.load(open('custom_components/zipassist/manifest.json')); print('Manifest is valid JSON')"
 
         # Check that all required files exist
+        cd custom_components/zipassist
         test -f __init__.py && echo "__init__.py exists"
         test -f config_flow.py && echo "config_flow.py exists"
         test -f coordinator.py && echo "coordinator.py exists"

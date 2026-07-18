@@ -350,6 +350,20 @@ class TestNumberEntities:
         mock_coordinator.async_request_refresh.assert_called_once()
 
 
+    def test_number_available(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test number available property."""
+        desc = NUMBER_TYPES[0]
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is True
+
+    def test_number_unavailable(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test number unavailable when coordinator fails."""
+        mock_coordinator.last_update_success = False
+        desc = NUMBER_TYPES[0]
+        entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is False
+
+
 # ------------------------------------------------------------------ binary sensor entities
 
 
@@ -400,6 +414,19 @@ class TestBinarySensorEntities:
         assert desc.device_class is not None
         # BinarySensorDeviceClass.PROBLEM = "problem"
         assert desc.device_class.value == "problem"
+
+    def test_binary_sensor_available(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test binary sensor available property."""
+        desc = BINARY_SENSOR_TYPES[0]
+        entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is True
+
+    def test_binary_sensor_unavailable(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test binary sensor unavailable when coordinator fails."""
+        mock_coordinator.last_update_success = False
+        desc = BINARY_SENSOR_TYPES[0]
+        entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is False
 
 
 # ------------------------------------------------------------------ switch entities
@@ -519,6 +546,19 @@ class TestSwitchEntities:
         assert SWITCH_TYPES[2].available_fn(settings_everyday) is True
         assert SWITCH_TYPES[2].available_fn(settings_daily) is False
 
+    def test_switch_available(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test switch available property."""
+        desc = SWITCH_TYPES[0]
+        entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is True
+
+    def test_switch_unavailable(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test switch unavailable when coordinator fails."""
+        mock_coordinator.last_update_success = False
+        desc = SWITCH_TYPES[0]
+        entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is False
+
 
 # ------------------------------------------------------------------ select entities
 
@@ -621,6 +661,19 @@ class TestSelectEntities:
         )
         mock_coordinator.async_request_refresh.assert_called_once()
 
+    def test_select_available(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test select available property."""
+        desc = SELECT_TYPES[0]
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is True
+
+    def test_select_unavailable(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test select unavailable when coordinator fails."""
+        mock_coordinator.last_update_success = False
+        desc = SELECT_TYPES[0]
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is False
+
 
 # ------------------------------------------------------------------ time entities
 
@@ -699,3 +752,16 @@ class TestTimeEntities:
         assert _parse_time(None) is None
         assert _parse_time("") is None
         assert _parse_time("invalid") is None
+
+    def test_time_available(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test time available property."""
+        desc = TIME_TYPES[0]
+        entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is True
+
+    def test_time_unavailable(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test time unavailable when coordinator fails."""
+        mock_coordinator.last_update_success = False
+        desc = TIME_TYPES[0]
+        entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is False
