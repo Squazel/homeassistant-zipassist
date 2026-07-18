@@ -185,6 +185,11 @@ class ZipAssistSwitch(CoordinatorEntity, SwitchEntity):
         )
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def is_on(self) -> bool | None:
         """Return true if the setting is enabled."""
         settings = (self.coordinator.data.get("settings") or {}).get(

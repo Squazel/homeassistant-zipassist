@@ -13,7 +13,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfVolume
+from homeassistant.const import EntityCategory, UnitOfVolume
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -75,28 +75,100 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         key="last_sync",
         translation_key="last_sync",
         device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: h.get("lastSyncTimestamp"),
     ),
     ZipAssistSensorEntityDescription(
         key="status",
         translation_key="status",
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: h.get("status"),
     ),
     ZipAssistSensorEntityDescription(
         key="serial_number",
         translation_key="serial_number",
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: h.get("serialNumber"),
     ),
     ZipAssistSensorEntityDescription(
         key="firmware_version",
         translation_key="firmware_version",
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: h.get("firmwareVersion"),
     ),
     ZipAssistSensorEntityDescription(
         key="system_fault_details",
         translation_key="system_fault_details",
         icon="mdi:alert-circle",
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: None,  # overridden in the entity — uses faults dict
+    ),
+    # --- status log sensors ---
+    ZipAssistSensorEntityDescription(
+        key="wifi_signal_strength",
+        translation_key="wifi_signal_strength",
+        native_unit_of_measurement="dBm",
+        state_class=SensorStateClass.MEASUREMENT,
+        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,  # overridden — uses status_logs
+    ),
+    ZipAssistSensorEntityDescription(
+        key="energy_since_last_log",
+        translation_key="energy_since_last_log",
+        native_unit_of_measurement="kWh",
+        state_class=SensorStateClass.MEASUREMENT,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,
+    ),
+    ZipAssistSensorEntityDescription(
+        key="energy_total",
+        translation_key="energy_total",
+        native_unit_of_measurement="kWh",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        device_class=SensorDeviceClass.ENERGY,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,
+    ),
+    ZipAssistSensorEntityDescription(
+        key="sleep_mode_status",
+        translation_key="sleep_mode_status",
+        icon="mdi:sleep",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,
+    ),
+    ZipAssistSensorEntityDescription(
+        key="litres_filtered_internal",
+        translation_key="litres_filtered_internal",
+        native_unit_of_measurement=UnitOfVolume.LITERS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,
+    ),
+    ZipAssistSensorEntityDescription(
+        key="litres_filtered_external",
+        translation_key="litres_filtered_external",
+        native_unit_of_measurement=UnitOfVolume.LITERS,
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,
+    ),
+    ZipAssistSensorEntityDescription(
+        key="days_filtered_internal",
+        translation_key="days_filtered_internal",
+        native_unit_of_measurement="days",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,
+    ),
+    ZipAssistSensorEntityDescription(
+        key="days_filtered_external",
+        translation_key="days_filtered_external",
+        native_unit_of_measurement="days",
+        state_class=SensorStateClass.TOTAL_INCREASING,
+        entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda h: None,
     ),
 )
 
@@ -128,19 +200,45 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def native_value(self) -> str | int | float | None:
         """Return the state of the sensor."""
-        if self.entity_description.key == "system_fault_details":
+        key = self.entity_description.key
+
+        # system_fault_details uses faults dict
+        if key == "system_fault_details":
             faults = (self.coordinator.data.get("faults") or {}).get(
                 self._hydrotap_id, []
             )
             if not faults:
                 return "No faults"
-            # Return comma-separated fault descriptions
             return ", ".join(
                 f.get("faultCode", f.get("code", "Unknown"))
                 for f in faults
             )
+
+        # Status log sensors use the status_logs dict
+        status_log = (self.coordinator.data.get("status_logs") or {}).get(
+            self._hydrotap_id, {}
+        )
+        status_log_map = {
+            "wifi_signal_strength": lambda l: l.get("wifiSignalStrength"),
+            "energy_since_last_log": lambda l: l.get("energyKwhSinceLastLog"),
+            "energy_total": lambda l: l.get("energyKwhTotal"),
+            "sleep_mode_status": lambda l: l.get("sleepModeStatus"),
+            "litres_filtered_internal": lambda l: l.get("litresFilteredInternal"),
+            "litres_filtered_external": lambda l: l.get("litresFilteredExternal"),
+            "days_filtered_internal": lambda l: l.get("daysFilteredInternal"),
+            "days_filtered_external": lambda l: l.get("daysFilteredExternal"),
+        }
+        if key in status_log_map:
+            return status_log_map[key](status_log)
+
+        # Default: look up in hydrotaps list
         for h in self.coordinator.data.get("hydrotaps", []):
             if h.get("hydrotapId") == self._hydrotap_id:
                 return self.entity_description.value_fn(h)

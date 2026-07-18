@@ -240,6 +240,11 @@ class ZipAssistNumber(CoordinatorEntity, NumberEntity):
             self._attr_native_step = float(current.get("step", 1))
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def native_value(self) -> float | None:
         """Return the current value."""
         settings = (self.coordinator.data.get("settings") or {}).get(

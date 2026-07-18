@@ -51,6 +51,30 @@
             },
             "system_fault_details": {
                 "name": "System Fault Details"
+            },
+            "wifi_signal_strength": {
+                "name": "WiFi Signal Strength"
+            },
+            "energy_since_last_log": {
+                "name": "Energy Since Last Log"
+            },
+            "energy_total": {
+                "name": "Total Energy"
+            },
+            "sleep_mode_status": {
+                "name": "Sleep Mode Status"
+            },
+            "litres_filtered_internal": {
+                "name": "Internal Litres Filtered"
+            },
+            "litres_filtered_external": {
+                "name": "External Litres Filtered"
+            },
+            "days_filtered_internal": {
+                "name": "Internal Days Filtered"
+            },
+            "days_filtered_external": {
+                "name": "External Days Filtered"
             }
         },
         "number": {

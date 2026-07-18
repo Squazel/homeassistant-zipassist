@@ -86,6 +86,11 @@ class ZipAssistBinarySensor(CoordinatorEntity, BinarySensorEntity):
         )
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def is_on(self) -> bool | None:
         """Return true if the safety feature is enabled."""
         if self.entity_description.key == "system_fault":

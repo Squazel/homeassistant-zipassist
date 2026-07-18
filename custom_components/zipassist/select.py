@@ -116,6 +116,11 @@ class ZipAssistSelect(CoordinatorEntity, SelectEntity):
         self._attr_options = description.options_fn()
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def current_option(self) -> str | None:
         """Return the currently selected option."""
         settings = (self.coordinator.data.get("settings") or {}).get(

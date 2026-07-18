@@ -36,6 +36,7 @@ class ZipAssistCoordinator(DataUpdateCoordinator):
           - settings: dict of {hydrotapId: settings_dict}
           - settings_options: dict of {hydrotapId: settings_options_dict}
           - faults: dict of {hydrotapId: [fault_dict, ...]}
+          - status_logs: dict of {hydrotapId: latest_status_log_dict}
         """
         try:
             hydrotaps = await self.client.get_hydrotaps()
@@ -44,6 +45,7 @@ class ZipAssistCoordinator(DataUpdateCoordinator):
             settings: dict[str, dict[str, Any]] = {}
             settings_options: dict[str, dict[str, Any]] = {}
             faults: dict[str, list[dict[str, Any]]] = {}
+            status_logs: dict[str, dict[str, Any]] = {}
 
             for h in hydrotaps:
                 hid = h.get("hydrotapId")
@@ -74,11 +76,21 @@ class ZipAssistCoordinator(DataUpdateCoordinator):
                         "Failed to fetch faults for %s", hid, exc_info=True
                     )
 
+                try:
+                    log = await self.client.get_latest_log(hid)
+                    if log:
+                        status_logs[hid] = log
+                except Exception:
+                    _LOGGER.debug(
+                        "Failed to fetch status log for %s", hid, exc_info=True
+                    )
+
             return {
                 "hydrotaps": hydrotaps,
                 "settings": settings,
                 "settings_options": settings_options,
                 "faults": faults,
+                "status_logs": status_logs,
             }
         except Exception as err:
             raise UpdateFailed(f"Error fetching data: {err}") from err

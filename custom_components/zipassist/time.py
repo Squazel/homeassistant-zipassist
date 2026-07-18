@@ -173,6 +173,11 @@ class ZipAssistTime(CoordinatorEntity, TimeEntity):
         )
 
     @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
     def native_value(self) -> time | None:
         """Return the current time value."""
         settings = (self.coordinator.data.get("settings") or {}).get(

@@ -61,6 +61,14 @@ class TestSensorEntities:
             "serial_number",
             "firmware_version",
             "system_fault_details",
+            "wifi_signal_strength",
+            "energy_since_last_log",
+            "energy_total",
+            "sleep_mode_status",
+            "litres_filtered_internal",
+            "litres_filtered_external",
+            "days_filtered_internal",
+            "days_filtered_external",
         }
         assert keys == expected
 
@@ -128,6 +136,71 @@ class TestSensorEntities:
         desc = SENSOR_TYPES[0]
         entity = ZipAssistSensor(mock_coordinator, hydrotap, desc)
         assert entity.native_value is None
+
+    def test_sensor_available(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test sensor available property."""
+        desc = SENSOR_TYPES[0]
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is True
+
+    def test_sensor_unavailable(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test sensor unavailable when coordinator fails."""
+        mock_coordinator.last_update_success = False
+        desc = SENSOR_TYPES[0]
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.available is False
+
+    # --- status log sensors ---
+
+    def test_wifi_signal_strength(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test wifi signal strength sensor."""
+        desc = SENSOR_TYPES[10]  # wifi_signal_strength
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == -55
+
+    def test_energy_since_last_log(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test energy since last log sensor."""
+        desc = SENSOR_TYPES[11]  # energy_since_last_log
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == 0.5
+
+    def test_energy_total(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test total energy sensor."""
+        desc = SENSOR_TYPES[12]  # energy_total
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == 1234.5
+
+    def test_sleep_mode_status(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test sleep mode status sensor."""
+        desc = SENSOR_TYPES[13]  # sleep_mode_status
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == "active"
+
+    def test_litres_filtered_internal(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test internal litres filtered sensor."""
+        desc = SENSOR_TYPES[14]  # litres_filtered_internal
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == 200
+
+    def test_days_filtered_internal(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test internal days filtered sensor."""
+        desc = SENSOR_TYPES[16]  # days_filtered_internal
+        entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == 15
+
+    def test_diagnostic_category(self) -> None:
+        """Test diagnostic sensors have DIAGNOSTIC entity category."""
+        diagnostic_keys = {
+            "last_sync", "status", "serial_number", "firmware_version",
+            "system_fault_details", "wifi_signal_strength", "energy_since_last_log",
+            "energy_total", "sleep_mode_status", "litres_filtered_internal",
+            "litres_filtered_external", "days_filtered_internal", "days_filtered_external",
+        }
+        for desc in SENSOR_TYPES:
+            if desc.key in diagnostic_keys:
+                assert desc.entity_category == "diagnostic", f"{desc.key} should be DIAGNOSTIC"
+            else:
+                assert desc.entity_category is None, f"{desc.key} should not be DIAGNOSTIC"
 
 
 # ------------------------------------------------------------------ number entities

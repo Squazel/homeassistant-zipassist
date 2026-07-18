@@ -34,7 +34,7 @@ jobs:
       if: matrix.python-version == '3.13'
       uses: codecov/codecov-action@v5
       with:
-        file: ./tests/coverage.xml
+        files: ./tests/coverage.xml
         flags: unittests
         name: codecov-umbrella
         fail_ci_if_error: false
@@ -73,7 +73,12 @@ jobs:
         test -f sensor.py && echo "sensor.py exists"
         test -f binary_sensor.py && echo "binary_sensor.py exists"
         test -f number.py && echo "number.py exists"
+        test -f switch.py && echo "switch.py exists"
+        test -f select.py && echo "select.py exists"
+        test -f time.py && echo "time.py exists"
         test -f const.py && echo "const.py exists"
         test -f helpers.py && echo "helpers.py exists"
+        test -f services.py && echo "services.py exists"
+        test -f services.yaml && echo "services.yaml exists"
         test -f strings.json && echo "strings.json exists"
         test -f manifest.json && echo "manifest.json exists"

@@ -215,6 +215,7 @@ sys.modules["homeassistant.const"] = _make_module(
     UnitOfTemperature=_make_module(CELSIUS="°C"),
     CONF_EMAIL="email",
     CONF_PASSWORD="password",
+    EntityCategory=_make_module(DIAGNOSTIC="diagnostic"),
 )
 class _StubConfigFlow:
     """Stub for ConfigFlow that supports domain kwarg."""
@@ -263,8 +264,8 @@ sys.modules["homeassistant.helpers"] = MagicMock()
 sys.modules["homeassistant.components.sensor"] = _make_module(
     SensorEntity=_StubSensorEntity,
     SensorEntityDescription=_StubSensorEntityDescription,
-    SensorDeviceClass=_make_module(TIMESTAMP="timestamp"),
-    SensorStateClass=_make_module(MEASUREMENT="measurement"),
+    SensorDeviceClass=_make_module(TIMESTAMP="timestamp", SIGNAL_STRENGTH="signal_strength", ENERGY="energy"),
+    SensorStateClass=_make_module(MEASUREMENT="measurement", TOTAL_INCREASING="total_increasing"),
 )
 sys.modules["homeassistant.components.number"] = _make_module(
     NumberEntity=_StubNumberEntity,
@@ -443,6 +444,28 @@ def sample_faults_empty():
 
 
 @pytest.fixture
+def sample_status_log():
+    """Return sample latest status log."""
+    return {
+        "hydrotapLogId": "log-1",
+        "hydrotapId": "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+        "timestamp": "2026-07-17T08:35:32+0000",
+        "energyKwhSinceLastLog": 0.5,
+        "energyKwhTotal": 1234.5,
+        "daysFilteredInternal": 15,
+        "litresFilteredInternal": 200,
+        "daysFilteredExternal": 0,
+        "litresFilteredExternal": 0,
+        "sleepModeStatus": "active",
+        "wifiSignalStrength": -55,
+        "hydrotapActive": True,
+    }
+
+
+# ------------------------------------------------------------------ mocks
+
+
+@pytest.fixture
 def mock_client():
     """Return a mock ZipAssistClient."""
     client = MagicMock()
@@ -452,21 +475,24 @@ def mock_client():
     client.get_settings = AsyncMock()
     client.get_settings_options = AsyncMock()
     client.get_current_faults = AsyncMock()
+    client.get_latest_log = AsyncMock()
     client.update_settings = AsyncMock(return_value=True)
     client.clear_fault = AsyncMock(return_value=True)
     return client
 
 
 @pytest.fixture
-def mock_coordinator(mock_client, sample_hydrotap, sample_settings, sample_settings_options, sample_faults):
+def mock_coordinator(mock_client, sample_hydrotap, sample_settings, sample_settings_options, sample_faults, sample_status_log):
     """Return a mock DataUpdateCoordinator with sample data."""
     coordinator = MagicMock()
     coordinator.client = mock_client
+    coordinator.last_update_success = True
     coordinator.data = {
         "hydrotaps": [sample_hydrotap],
         "settings": {sample_hydrotap["hydrotapId"]: sample_settings},
         "settings_options": {sample_hydrotap["hydrotapId"]: sample_settings_options},
         "faults": {sample_hydrotap["hydrotapId"]: sample_faults},
+        "status_logs": {sample_hydrotap["hydrotapId"]: sample_status_log},
     }
     coordinator.async_request_refresh = AsyncMock()
     return coordinator
