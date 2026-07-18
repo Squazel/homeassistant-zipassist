@@ -373,29 +373,17 @@ class TestBinarySensorEntities:
     def test_all_binary_sensor_types_defined(self) -> None:
         """Test all expected binary sensor types are defined."""
         keys = {d.key for d in BINARY_SENSOR_TYPES}
-        assert keys == {"safety_lock", "hot_isolation", "system_fault"}
+        assert keys == {"system_fault"}
 
     def test_binary_sensor_creation(self, mock_coordinator, sample_hydrotap) -> None:
         """Test creating a binary sensor entity."""
-        desc = BINARY_SENSOR_TYPES[0]  # safety_lock
+        desc = BINARY_SENSOR_TYPES[0]  # system_fault
         entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
-        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_safety_lock"
-
-    def test_safety_lock_on(self, mock_coordinator, sample_hydrotap) -> None:
-        """Test safety lock is_on."""
-        desc = BINARY_SENSOR_TYPES[0]  # safety_lock
-        entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
-        assert entity.is_on is True
-
-    def test_hot_isolation_off(self, mock_coordinator, sample_hydrotap) -> None:
-        """Test hot isolation is_on when disabled."""
-        desc = BINARY_SENSOR_TYPES[1]  # hot_isolation
-        entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
-        assert entity.is_on is False
+        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_system_fault"
 
     def test_system_fault_on(self, mock_coordinator, sample_hydrotap) -> None:
         """Test system_fault is_on when faults exist."""
-        desc = BINARY_SENSOR_TYPES[2]  # system_fault
+        desc = BINARY_SENSOR_TYPES[0]  # system_fault
         entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
         assert entity.is_on is True
 
@@ -404,13 +392,13 @@ class TestBinarySensorEntities:
         mock_coordinator.data["faults"] = {
             sample_hydrotap["hydrotapId"]: []
         }
-        desc = BINARY_SENSOR_TYPES[2]  # system_fault
+        desc = BINARY_SENSOR_TYPES[0]  # system_fault
         entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
         assert entity.is_on is False
 
     def test_system_fault_device_class(self) -> None:
         """Test system_fault has PROBLEM device class."""
-        desc = BINARY_SENSOR_TYPES[2]
+        desc = BINARY_SENSOR_TYPES[0]
         assert desc.device_class is not None
         # BinarySensorDeviceClass.PROBLEM = "problem"
         assert desc.device_class.value == "problem"
