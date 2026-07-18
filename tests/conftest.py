@@ -61,6 +61,14 @@ class _StubSelectEntityDescription:
     icon: str | None = None
 
 
+@dataclass(frozen=True)
+class _StubTimeEntityDescription:
+    """Stub for TimeEntityDescription."""
+    key: str = ""
+    translation_key: str | None = None
+    icon: str | None = None
+
+
 class _StubEntity:
     """Stub base for all HA entities that supports _attr_* pattern."""
 
@@ -172,8 +180,21 @@ class _StubSelectEntity(_StubEntity):
         self._attr_current_option = value
 
 
+class _StubTimeEntity(_StubEntity):
+    """Stub for TimeEntity."""
+    entity_description = None
+
+
 class _StubDataUpdateCoordinator:
     """Stub for DataUpdateCoordinator."""
+
+    def __init__(self, hass, logger, *, name, update_interval, **kwargs):
+        self.hass = hass
+        self.logger = logger
+        self.name = name
+        self.update_interval = update_interval
+        self.data: dict = {}
+        self.last_update_success: bool = True
 
 
 class _StubUpdateFailed(Exception):
@@ -195,12 +216,43 @@ sys.modules["homeassistant.const"] = _make_module(
     CONF_EMAIL="email",
     CONF_PASSWORD="password",
 )
+class _StubConfigFlow:
+    """Stub for ConfigFlow that supports domain kwarg."""
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__()
+        for k, v in kwargs.items():
+            setattr(cls, k, v)
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def async_set_unique_id(self, unique_id: str) -> None:
+        """Stub."""
+        pass
+
+    def _abort_if_unique_id_configured(self) -> None:
+        """Stub."""
+        pass
+
+    async def async_create_entry(self, **kwargs):
+        """Stub."""
+        pass
+
+    async def async_show_form(self, **kwargs):
+        """Stub."""
+        pass
+
+
 sys.modules["homeassistant.config_entries"] = _make_module(
-    ConfigEntry=MagicMock, ConfigFlow=MagicMock
+    ConfigEntry=MagicMock, ConfigFlow=_StubConfigFlow, ConfigFlowResult=dict
 )
 sys.modules["homeassistant.helpers.entity"] = _make_module(DeviceInfo=dict)
 sys.modules["homeassistant.helpers.entity_platform"] = _make_module(
     AddEntitiesCallback=MagicMock
+)
+sys.modules["homeassistant.helpers.config_validation"] = _make_module(
+    config_entry_only_config_schema=lambda d: {},
 )
 sys.modules["homeassistant.helpers.update_coordinator"] = _make_module(
     CoordinatorEntity=_StubCoordinatorEntity,
@@ -231,6 +283,10 @@ sys.modules["homeassistant.components.switch"] = _make_module(
 sys.modules["homeassistant.components.select"] = _make_module(
     SelectEntity=_StubSelectEntity,
     SelectEntityDescription=_StubSelectEntityDescription,
+)
+sys.modules["homeassistant.components.time"] = _make_module(
+    TimeEntity=_StubTimeEntity,
+    TimeEntityDescription=_StubTimeEntityDescription,
 )
 sys.modules["homeassistant.components"] = MagicMock()
 
@@ -397,6 +453,7 @@ def mock_client():
     client.get_settings_options = AsyncMock()
     client.get_current_faults = AsyncMock()
     client.update_settings = AsyncMock(return_value=True)
+    client.clear_fault = AsyncMock(return_value=True)
     return client
 
 

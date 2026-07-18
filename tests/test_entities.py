@@ -34,6 +34,11 @@ from zipassist.select import (  # noqa: E402
     SELECT_TYPES,
     ZipAssistSelect,
 )
+from zipassist.time import (  # noqa: E402
+    TIME_TYPES,
+    ZipAssistTime,
+    _parse_time,
+)
 
 
 # ------------------------------------------------------------------ sensor entities
@@ -333,7 +338,20 @@ class TestSwitchEntities:
     def test_all_switch_types_defined(self) -> None:
         """Test all expected switch types are defined."""
         keys = {d.key for d in SWITCH_TYPES}
-        assert keys == {"safety_lock", "hot_isolation"}
+        expected = {
+            "safety_lock",
+            "hot_isolation",
+            "energy_everyday_on_active",
+            "energy_everyday_off_active",
+            "energy_weekday_on_active",
+            "energy_weekday_off_active",
+            "energy_weekend_on_active",
+            "energy_weekend_off_active",
+        }
+        for day in ("mon", "tue", "wed", "thu", "fri", "sat", "sun"):
+            expected.add(f"energy_daily_{day}_on_active")
+            expected.add(f"energy_daily_{day}_off_active")
+        assert keys == expected
 
     def test_switch_creation(self, mock_coordinator, sample_hydrotap) -> None:
         """Test creating a switch entity."""
@@ -396,10 +414,37 @@ class TestSwitchEntities:
         assert SWITCH_TYPES[0].available_fn(opts) is True
         assert SWITCH_TYPES[1].available_fn(opts) is False
 
-    def test_switch_setting_key(self) -> None:
-        """Test setting_key for switch types."""
-        assert SWITCH_TYPES[0].setting_key == "safetyLockEnabled"
-        assert SWITCH_TYPES[1].setting_key == "hotIsolationEnabled"
+    def test_energy_everyday_switch(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test energy everyday on_active switch."""
+        desc = SWITCH_TYPES[2]  # energy_everyday_on_active
+        entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
+        assert entity.is_on is False  # onTimeActive is False in sample
+
+    def test_energy_everyday_off_active(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test energy everyday off_active switch."""
+        desc = SWITCH_TYPES[3]  # energy_everyday_off_active
+        entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
+        assert entity.is_on is True  # offTimeActive is True in sample
+
+    @pytest.mark.asyncio
+    async def test_energy_switch_turn_on(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test turning an energy switch on."""
+        desc = SWITCH_TYPES[2]  # energy_everyday_on_active
+        entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_turn_on()
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            {"energy": {"everyday": {"onTimeActive": True}}},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
+
+    def test_energy_available_fn(self) -> None:
+        """Test energy switch available_fn checks activeMode."""
+        settings_everyday = {"energy": {"activeMode": "everyday"}}
+        settings_daily = {"energy": {"activeMode": "daily"}}
+        # everyday switch available when mode is everyday
+        assert SWITCH_TYPES[2].available_fn(settings_everyday) is True
+        assert SWITCH_TYPES[2].available_fn(settings_daily) is False
 
 
 # ------------------------------------------------------------------ select entities
@@ -411,7 +456,7 @@ class TestSelectEntities:
     def test_all_select_types_defined(self) -> None:
         """Test all expected select types are defined."""
         keys = {d.key for d in SELECT_TYPES}
-        assert keys == {"sleep_mode", "energy_mode"}
+        assert keys == {"sleep_mode", "energy_mode", "sync_period"}
 
     def test_select_creation(self, mock_coordinator, sample_hydrotap) -> None:
         """Test creating a select entity."""
@@ -480,3 +525,104 @@ class TestSelectEntities:
         entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
         await entity.async_select_option("3")
         mock_coordinator.async_request_refresh.assert_not_called()
+
+    def test_sync_period_current_option(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test sync period current option."""
+        desc = SELECT_TYPES[2]  # sync_period
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        assert entity.current_option == "00:10:00"
+
+    @pytest.mark.asyncio
+    async def test_select_option_sync_period(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test selecting a sync period option."""
+        desc = SELECT_TYPES[2]  # sync_period
+        entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_select_option("00:30:00")
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            {"syncPeriod": "00:30:00"},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
+
+
+# ------------------------------------------------------------------ time entities
+
+
+class TestTimeEntities:
+    """Tests for time entity creation and state."""
+
+    def test_all_time_types_defined(self) -> None:
+        """Test all expected time types are defined."""
+        keys = {d.key for d in TIME_TYPES}
+        expected = {
+            "energy_everyday_on_time",
+            "energy_everyday_off_time",
+            "energy_weekday_on_time",
+            "energy_weekday_off_time",
+            "energy_weekend_on_time",
+            "energy_weekend_off_time",
+        }
+        for day in ("mon", "tue", "wed", "thu", "fri", "sat", "sun"):
+            expected.add(f"energy_daily_{day}_on_time")
+            expected.add(f"energy_daily_{day}_off_time")
+        assert keys == expected
+
+    def test_time_creation(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test creating a time entity."""
+        desc = TIME_TYPES[0]  # energy_everyday_on_time
+        entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
+        assert entity.unique_id == "631a3385-301b-4c9c-97ed-3a1a50061f5c_energy_everyday_on_time"
+        assert entity.device_info is not None
+
+    def test_time_native_value(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test time returns correct value."""
+        from datetime import time as dtime
+        desc = TIME_TYPES[0]  # energy_everyday_on_time — "07:00:00"
+        entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == dtime(7, 0, 0)
+
+    def test_time_off_value(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test time off value."""
+        from datetime import time as dtime
+        desc = TIME_TYPES[1]  # energy_everyday_off_time — "19:00:00"
+        entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
+        assert entity.native_value == dtime(19, 0, 0)
+
+    @pytest.mark.asyncio
+    async def test_time_set_value(self, mock_coordinator, sample_hydrotap) -> None:
+        """Test setting a time value."""
+        from datetime import time as dtime
+        desc = TIME_TYPES[0]  # energy_everyday_on_time
+        entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_set_value(dtime(8, 30, 0))
+        mock_coordinator.client.update_settings.assert_called_once_with(
+            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            {"energy": {"everyday": {"onTime": "08:30:00"}}},
+        )
+        mock_coordinator.async_request_refresh.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_time_set_value_failure(
+        self, mock_coordinator, sample_hydrotap
+    ) -> None:
+        """Test setting a time value when API fails."""
+        from datetime import time as dtime
+        mock_coordinator.client.update_settings.return_value = False
+        desc = TIME_TYPES[0]
+        entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
+        await entity.async_set_value(dtime(8, 0, 0))
+        mock_coordinator.async_request_refresh.assert_not_called()
+
+    def test_parse_time(self) -> None:
+        """Test _parse_time helper."""
+        from datetime import time as dtime
+        assert _parse_time("07:00:00") == dtime(7, 0, 0)
+        assert _parse_time("19:00:00") == dtime(19, 0, 0)
+        assert _parse_time("07:00") == dtime(7, 0)
+        assert _parse_time(None) is None
+        assert _parse_time("") is None
+        assert _parse_time("invalid") is None

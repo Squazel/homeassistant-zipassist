@@ -101,5 +101,4 @@ class TestDeviceName:
             "locationInBuilding": "Kitchen",
             "moduleName": "BC 100/75",
         }
-        # Flat fields are NOT in hydrotapLocation, so falls back to moduleName
-        assert device_name(hydrotap) == "BC 100/75"
+        assert device_name(hydrotap) == "The Warehouse - 1/Kitchen"

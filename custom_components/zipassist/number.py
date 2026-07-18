@@ -198,6 +198,7 @@ NUMBER_TYPES: tuple[ZipAssistNumberEntityDescription, ...] = (
 class ZipAssistNumber(CoordinatorEntity, NumberEntity):
     """Number entity for a ZipAssist hydrotap setting."""
 
+    _attr_has_entity_name = True
     entity_description: ZipAssistNumberEntityDescription
 
     def __init__(

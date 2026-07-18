@@ -1,4 +1,4 @@
-"""Switch platform for ZipAssist CMMS — safety toggles."""
+"""Switch platform for ZipAssist CMMS — safety toggles and energy timer actives."""
 
 from __future__ import annotations
 
@@ -24,6 +24,9 @@ from .helpers import device_name
 
 _LOGGER = logging.getLogger(__name__)
 
+# Days of the week for daily energy schedule
+_DAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
 
 @dataclass(frozen=True, kw_only=True)
 class ZipAssistSwitchEntityDescription(SwitchEntityDescription):
@@ -31,17 +34,43 @@ class ZipAssistSwitchEntityDescription(SwitchEntityDescription):
 
     value_fn: Callable[[dict], bool | None]
     available_fn: Callable[[dict], bool]  # whether the feature is available
-    setting_key: str  # top-level key in the settings payload
+    payload_fn: Callable[[bool], dict]  # builds the PATCH payload from a bool
+
+
+def _safety_payload(key: str):
+    """Build payload for safety toggles."""
+    return lambda v: {key: v}
+
+
+def _energy_active_payload(mode: str, slot: str, field: str):
+    """Build payload for energy timer active toggles.
+
+    mode: "everyday" | "daily" | "weekdayWeekend"
+    slot: day name for "daily", or "weekday"/"weekend" for weekdayWeekend
+    field: "onTimeActive" | "offTimeActive"
+    """
+    if mode == "everyday":
+        return lambda v: {"energy": {"everyday": {field: v}}}
+    if mode == "daily":
+        return lambda v: {"energy": {"daily": {slot: {field: v}}}}
+    # weekdayWeekend
+    return lambda v: {"energy": {"weekdayWeekend": {slot: {field: v}}}}
+
+
+def _energy_available(mode: str):
+    """Return an available_fn that checks activeMode matches."""
+    return lambda s: (s.get("energy") or {}).get("activeMode") == mode
 
 
 SWITCH_TYPES: tuple[ZipAssistSwitchEntityDescription, ...] = (
+    # --- safety toggles ---
     ZipAssistSwitchEntityDescription(
         key="safety_lock",
         translation_key="safety_lock",
         icon="mdi:lock",
         value_fn=lambda s: s.get("safetyLockEnabled"),
         available_fn=lambda so: so.get("safety", {}).get("safetyLockEnabled", False),
-        setting_key="safetyLockEnabled",
+        payload_fn=_safety_payload("safetyLockEnabled"),
     ),
     ZipAssistSwitchEntityDescription(
         key="hot_isolation",
@@ -51,14 +80,88 @@ SWITCH_TYPES: tuple[ZipAssistSwitchEntityDescription, ...] = (
         available_fn=lambda so: so.get("safety", {}).get(
             "hotIsolationEnabled", False
         ),
-        setting_key="hotIsolationEnabled",
+        payload_fn=_safety_payload("hotIsolationEnabled"),
+    ),
+    # --- energy: everyday on/off active ---
+    ZipAssistSwitchEntityDescription(
+        key="energy_everyday_on_active",
+        translation_key="energy_everyday_on_active",
+        icon="mdi:timer-play-outline",
+        value_fn=lambda s: (s.get("energy") or {}).get("everyday", {}).get("onTimeActive"),
+        available_fn=_energy_available("everyday"),
+        payload_fn=_energy_active_payload("everyday", "", "onTimeActive"),
+    ),
+    ZipAssistSwitchEntityDescription(
+        key="energy_everyday_off_active",
+        translation_key="energy_everyday_off_active",
+        icon="mdi:timer-stop-outline",
+        value_fn=lambda s: (s.get("energy") or {}).get("everyday", {}).get("offTimeActive"),
+        available_fn=_energy_available("everyday"),
+        payload_fn=_energy_active_payload("everyday", "", "offTimeActive"),
+    ),
+    # --- energy: daily on/off active (7 days) ---
+    *(
+        ZipAssistSwitchEntityDescription(
+            key=f"energy_daily_{day}_on_active",
+            translation_key=f"energy_daily_{day}_on_active",
+            icon="mdi:timer-play-outline",
+            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("onTimeActive"),
+            available_fn=_energy_available("daily"),
+            payload_fn=_energy_active_payload("daily", day, "onTimeActive"),
+        )
+        for day in _DAYS
+    ),
+    *(
+        ZipAssistSwitchEntityDescription(
+            key=f"energy_daily_{day}_off_active",
+            translation_key=f"energy_daily_{day}_off_active",
+            icon="mdi:timer-stop-outline",
+            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("offTimeActive"),
+            available_fn=_energy_available("daily"),
+            payload_fn=_energy_active_payload("daily", day, "offTimeActive"),
+        )
+        for day in _DAYS
+    ),
+    # --- energy: weekday/weekend on/off active ---
+    ZipAssistSwitchEntityDescription(
+        key="energy_weekday_on_active",
+        translation_key="energy_weekday_on_active",
+        icon="mdi:timer-play-outline",
+        value_fn=lambda s: (s.get("energy") or {}).get("weekdayWeekend", {}).get("weekday", {}).get("onTimeActive"),
+        available_fn=_energy_available("weekdayWeekend"),
+        payload_fn=_energy_active_payload("weekdayWeekend", "weekday", "onTimeActive"),
+    ),
+    ZipAssistSwitchEntityDescription(
+        key="energy_weekday_off_active",
+        translation_key="energy_weekday_off_active",
+        icon="mdi:timer-stop-outline",
+        value_fn=lambda s: (s.get("energy") or {}).get("weekdayWeekend", {}).get("weekday", {}).get("offTimeActive"),
+        available_fn=_energy_available("weekdayWeekend"),
+        payload_fn=_energy_active_payload("weekdayWeekend", "weekday", "offTimeActive"),
+    ),
+    ZipAssistSwitchEntityDescription(
+        key="energy_weekend_on_active",
+        translation_key="energy_weekend_on_active",
+        icon="mdi:timer-play-outline",
+        value_fn=lambda s: (s.get("energy") or {}).get("weekdayWeekend", {}).get("weekend", {}).get("onTimeActive"),
+        available_fn=_energy_available("weekdayWeekend"),
+        payload_fn=_energy_active_payload("weekdayWeekend", "weekend", "onTimeActive"),
+    ),
+    ZipAssistSwitchEntityDescription(
+        key="energy_weekend_off_active",
+        translation_key="energy_weekend_off_active",
+        icon="mdi:timer-stop-outline",
+        value_fn=lambda s: (s.get("energy") or {}).get("weekdayWeekend", {}).get("weekend", {}).get("offTimeActive"),
+        available_fn=_energy_available("weekdayWeekend"),
+        payload_fn=_energy_active_payload("weekdayWeekend", "weekend", "offTimeActive"),
     ),
 )
 
 
 class ZipAssistSwitch(CoordinatorEntity, SwitchEntity):
-    """Switch entity for a ZipAssist hydrotap safety setting."""
+    """Switch entity for a ZipAssist hydrotap setting."""
 
+    _attr_has_entity_name = True
     entity_description: ZipAssistSwitchEntityDescription
 
     def __init__(
@@ -83,23 +186,23 @@ class ZipAssistSwitch(CoordinatorEntity, SwitchEntity):
 
     @property
     def is_on(self) -> bool | None:
-        """Return true if the safety feature is enabled."""
+        """Return true if the setting is enabled."""
         settings = (self.coordinator.data.get("settings") or {}).get(
             self._hydrotap_id, {}
         )
         return self.entity_description.value_fn(settings)
 
     async def async_turn_on(self, **kwargs) -> None:
-        """Turn the safety feature on."""
+        """Turn the setting on."""
         await self._set_setting(True)
 
     async def async_turn_off(self, **kwargs) -> None:
-        """Turn the safety feature off."""
+        """Turn the setting off."""
         await self._set_setting(False)
 
     async def _set_setting(self, value: bool) -> None:
         """Send the setting update to the API."""
-        payload = {self.entity_description.setting_key: value}
+        payload = self.entity_description.payload_fn(value)
         success = await self.coordinator.client.update_settings(
             self._hydrotap_id, payload
         )
@@ -120,6 +223,7 @@ async def async_setup_entry(
     coordinator: DataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     hydrotaps: list[dict] = coordinator.data.get("hydrotaps", [])
     settings_options_map: dict = coordinator.data.get("settings_options", {})
+    settings_map: dict = coordinator.data.get("settings", {})
 
     entities: list[ZipAssistSwitch] = []
     for hydrotap in hydrotaps:
@@ -127,11 +231,18 @@ async def async_setup_entry(
         if not hid:
             continue
         tap_options = settings_options_map.get(hid, {})
+        tap_settings = settings_map.get(hid, {})
         for description in SWITCH_TYPES:
-            if description.available_fn(tap_options):
-                entities.append(
-                    ZipAssistSwitch(coordinator, hydrotap, description)
-                )
+            # Safety switches use settings_options; energy switches use settings
+            if description.key.startswith("energy_"):
+                if not description.available_fn(tap_settings):
+                    continue
+            else:
+                if not description.available_fn(tap_options):
+                    continue
+            entities.append(
+                ZipAssistSwitch(coordinator, hydrotap, description)
+            )
 
     _LOGGER.debug("Creating %d switch entities", len(entities))
     async_add_entities(entities)

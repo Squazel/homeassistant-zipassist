@@ -102,6 +102,66 @@
             },
             "hot_isolation": {
                 "name": "Hot Isolation"
+            },
+            "energy_everyday_on_active": {
+                "name": "Energy Everyday On Active"
+            },
+            "energy_everyday_off_active": {
+                "name": "Energy Everyday Off Active"
+            },
+            "energy_daily_mon_on_active": {
+                "name": "Energy Monday On Active"
+            },
+            "energy_daily_mon_off_active": {
+                "name": "Energy Monday Off Active"
+            },
+            "energy_daily_tue_on_active": {
+                "name": "Energy Tuesday On Active"
+            },
+            "energy_daily_tue_off_active": {
+                "name": "Energy Tuesday Off Active"
+            },
+            "energy_daily_wed_on_active": {
+                "name": "Energy Wednesday On Active"
+            },
+            "energy_daily_wed_off_active": {
+                "name": "Energy Wednesday Off Active"
+            },
+            "energy_daily_thu_on_active": {
+                "name": "Energy Thursday On Active"
+            },
+            "energy_daily_thu_off_active": {
+                "name": "Energy Thursday Off Active"
+            },
+            "energy_daily_fri_on_active": {
+                "name": "Energy Friday On Active"
+            },
+            "energy_daily_fri_off_active": {
+                "name": "Energy Friday Off Active"
+            },
+            "energy_daily_sat_on_active": {
+                "name": "Energy Saturday On Active"
+            },
+            "energy_daily_sat_off_active": {
+                "name": "Energy Saturday Off Active"
+            },
+            "energy_daily_sun_on_active": {
+                "name": "Energy Sunday On Active"
+            },
+            "energy_daily_sun_off_active": {
+                "name": "Energy Sunday Off Active"
+            },
+            "energy_weekday_on_active": {
+                "name": "Energy Weekday On Active"
+            },
+            "energy_weekday_off_active": {
+                "name": "Energy Weekday Off Active"
+            },
+            "energy_weekend_on_active": {
+                "name": "Energy Weekend On Active"
+            },
+            "energy_weekend_off_active": {
+                "name": "Energy Weekend Off Active"
             }
         },
         "select": {
@@ -110,6 +170,71 @@
             },
             "energy_mode": {
                 "name": "Energy Mode"
+            },
+            "sync_period": {
+                "name": "Sync Period"
+            }
+        },
+        "time": {
+            "energy_everyday_on_time": {
+                "name": "Energy Everyday On Time"
+            },
+            "energy_everyday_off_time": {
+                "name": "Energy Everyday Off Time"
+            },
+            "energy_daily_mon_on_time": {
+                "name": "Energy Monday On Time"
+            },
+            "energy_daily_mon_off_time": {
+                "name": "Energy Monday Off Time"
+            },
+            "energy_daily_tue_on_time": {
+                "name": "Energy Tuesday On Time"
+            },
+            "energy_daily_tue_off_time": {
+                "name": "Energy Tuesday Off Time"
+            },
+            "energy_daily_wed_on_time": {
+                "name": "Energy Wednesday On Time"
+            },
+            "energy_daily_wed_off_time": {
+                "name": "Energy Wednesday Off Time"
+            },
+            "energy_daily_thu_on_time": {
+                "name": "Energy Thursday On Time"
+            },
+            "energy_daily_thu_off_time": {
+                "name": "Energy Thursday Off Time"
+            },
+            "energy_daily_fri_on_time": {
+                "name": "Energy Friday On Time"
+            },
+            "energy_daily_fri_off_time": {
+                "name": "Energy Friday Off Time"
+            },
+            "energy_daily_sat_on_time": {
+                "name": "Energy Saturday On Time"
+            },
+            "energy_daily_sat_off_time": {
+                "name": "Energy Saturday Off Time"
+            },
+            "energy_daily_sun_on_time": {
+                "name": "Energy Sunday On Time"
+            },
+            "energy_daily_sun_off_time": {
+                "name": "Energy Sunday Off Time"
+            },
+            "energy_weekday_on_time": {
+                "name": "Energy Weekday On Time"
+            },
+            "energy_weekday_off_time": {
+                "name": "Energy Weekday Off Time"
+            },
+            "energy_weekend_on_time": {
+                "name": "Energy Weekend On Time"
+            },
+            "energy_weekend_off_time": {
+                "name": "Energy Weekend Off Time"
             }
         }
     }

@@ -104,6 +104,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
 class ZipAssistSensor(CoordinatorEntity, SensorEntity):
     """Sensor for a ZipAssist hydrotap."""
 
+    _attr_has_entity_name = True
     entity_description: ZipAssistSensorEntityDescription
 
     def __init__(

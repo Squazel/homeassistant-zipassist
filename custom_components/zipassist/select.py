@@ -32,6 +32,11 @@ ENERGY_MODE_OPTIONS: list[str] = [
     "weekdayWeekend",
 ]
 
+# Sync period: 10–60 min, step 10 min (stored as "HH:MM:SS")
+SYNC_PERIOD_OPTIONS: list[str] = [
+    "00:10:00", "00:20:00", "00:30:00", "00:40:00", "00:50:00", "01:00:00",
+]
+
 
 @dataclass(frozen=True, kw_only=True)
 class ZipAssistSelectEntityDescription(SelectEntityDescription):
@@ -51,6 +56,10 @@ def _energy_payload(value: str) -> dict:
     return {"energy": {"activeMode": value}}
 
 
+def _sync_period_payload(value: str) -> dict:
+    return {"syncPeriod": value}
+
+
 SELECT_TYPES: tuple[ZipAssistSelectEntityDescription, ...] = (
     ZipAssistSelectEntityDescription(
         key="sleep_mode",
@@ -68,12 +77,21 @@ SELECT_TYPES: tuple[ZipAssistSelectEntityDescription, ...] = (
         options_fn=lambda: ENERGY_MODE_OPTIONS,
         payload_fn=_energy_payload,
     ),
+    ZipAssistSelectEntityDescription(
+        key="sync_period",
+        translation_key="sync_period",
+        icon="mdi:sync",
+        value_fn=lambda s: s.get("syncPeriod", ""),
+        options_fn=lambda: SYNC_PERIOD_OPTIONS,
+        payload_fn=_sync_period_payload,
+    ),
 )
 
 
 class ZipAssistSelect(CoordinatorEntity, SelectEntity):
     """Select entity for a ZipAssist hydrotap setting."""
 
+    _attr_has_entity_name = True
     entity_description: ZipAssistSelectEntityDescription
 
     def __init__(

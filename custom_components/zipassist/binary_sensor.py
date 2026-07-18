@@ -62,6 +62,7 @@ BINARY_SENSOR_TYPES: tuple[ZipAssistBinarySensorEntityDescription, ...] = (
 class ZipAssistBinarySensor(CoordinatorEntity, BinarySensorEntity):
     """Binary sensor for a ZipAssist hydrotap safety setting."""
 
+    _attr_has_entity_name = True
     entity_description: ZipAssistBinarySensorEntityDescription
 
     def __init__(
