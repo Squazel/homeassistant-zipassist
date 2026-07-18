@@ -104,7 +104,7 @@ class ZipAssistSelect(CoordinatorEntity, SelectEntity):
         super().__init__(coordinator)
         self._hydrotap_id: str = hydrotap["hydrotapId"]
         self.entity_description = description
-        self._attr_unique_id = f"{self._hydrotap_id}_{description.key}"
+        self._attr_unique_id = f"zipassist_{self._hydrotap_id}_{description.key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._hydrotap_id)},
             name=device_name(hydrotap),
