@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -203,6 +204,86 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return True if entity is available."""
         return self.coordinator.last_update_success
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return additional state attributes for rich data."""
+        attrs: dict[str, Any] = {}
+
+        # Find the hydrotap in the list
+        hydrotap: dict[str, Any] | None = None
+        for h in self.coordinator.data.get("hydrotaps", []):
+            if h.get("hydrotapId") == self._hydrotap_id:
+                hydrotap = h
+                break
+
+        settings = (self.coordinator.data.get("settings") or {}).get(
+            self._hydrotap_id, {}
+        )
+        status_log = (self.coordinator.data.get("status_logs") or {}).get(
+            self._hydrotap_id, {}
+        )
+        faults = (self.coordinator.data.get("faults") or {}).get(
+            self._hydrotap_id, []
+        )
+
+        key = self.entity_description.key
+
+        # Filter sensors: include filter limits from settings
+        if key in (
+            "filter_litres_remaining",
+            "filter_days_remaining",
+            "filter_estimated_days",
+        ):
+            internal = settings.get("internalFilterLimits", {})
+            external = settings.get("externalFilterLimits", {})
+            if internal:
+                attrs["internal_filter_limit_litres"] = internal.get("litres")
+                attrs["internal_filter_limit_days"] = internal.get("days")
+            if external:
+                attrs["external_filter_limit_litres"] = external.get("litres")
+                attrs["external_filter_limit_days"] = external.get("days")
+
+        # System fault details: include full fault objects
+        if key == "system_fault_details" and faults:
+            attrs["faults"] = faults
+
+        # Status log sensors: include related status log fields
+        if key in (
+            "wifi_signal_strength",
+            "energy_since_last_log",
+            "energy_total",
+            "sleep_mode_status",
+            "litres_filtered_internal",
+            "litres_filtered_external",
+            "days_filtered_internal",
+            "days_filtered_external",
+        ):
+            if status_log:
+                attrs["log_timestamp"] = status_log.get("timestamp")
+                attrs["time_since_last_log"] = status_log.get("timeSinceLastLog")
+                attrs["hydrotap_active"] = status_log.get("hydrotapActive")
+
+        # Hydrotap list sensors: include location and permissions
+        if hydrotap and key in (
+            "filter_litres_remaining",
+            "filter_days_remaining",
+            "filter_estimated_days",
+            "average_daily_usage",
+            "peak_hourly_usage",
+            "last_sync",
+            "status",
+        ):
+            attrs["building_name"] = hydrotap.get("buildingName")
+            attrs["level"] = hydrotap.get("level")
+            attrs["location_in_building"] = hydrotap.get("locationInBuilding")
+            attrs["zip_managed"] = hydrotap.get("zipManaged")
+            permissions = hydrotap.get("permissions", {})
+            if permissions:
+                attrs["can_view"] = permissions.get("view")
+                attrs["can_edit"] = permissions.get("edit")
+
+        return attrs or None
 
     @property
     def native_value(self) -> str | int | float | None:

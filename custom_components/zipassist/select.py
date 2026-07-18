@@ -21,8 +21,8 @@ from .helpers import device_name
 
 _LOGGER = logging.getLogger(__name__)
 
-# Sleep mode codes from the API
-SLEEP_MODE_OPTIONS: list[str] = [
+# Sleep mode codes from the API (fallback when API fetch fails)
+_SLEEP_MODE_FALLBACK: list[str] = [
     "0", "1", "2", "3", "4", "5", "6", "7", "8",
 ]
 
@@ -36,6 +36,11 @@ ENERGY_MODE_OPTIONS: list[str] = [
 SYNC_PERIOD_OPTIONS: list[str] = [
     "00:10:00", "00:20:00", "00:30:00", "00:40:00", "00:50:00", "01:00:00",
 ]
+
+
+def _sleep_mode_options() -> list[str]:
+    """Return hardcoded fallback sleep mode options."""
+    return _SLEEP_MODE_FALLBACK
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -60,13 +65,29 @@ def _sync_period_payload(value: str) -> dict:
     return {"syncPeriod": value}
 
 
+def _build_sleep_mode_options(coordinator_data: dict | None) -> list[str]:
+    """Build sleep mode options from coordinator data or fallback."""
+    if coordinator_data:
+        sleep_modes = coordinator_data.get("sleep_modes")
+        if isinstance(sleep_modes, list) and sleep_modes:
+            # API returns list of dicts with code/name; extract codes as strings
+            codes: list[str] = []
+            for mode in sleep_modes:
+                code = mode.get("code", mode.get("sleepModeCode", mode.get("id")))
+                if code is not None:
+                    codes.append(str(code))
+            if codes:
+                return codes
+    return _SLEEP_MODE_FALLBACK
+
+
 SELECT_TYPES: tuple[ZipAssistSelectEntityDescription, ...] = (
     ZipAssistSelectEntityDescription(
         key="sleep_mode",
         translation_key="sleep_mode",
         icon="mdi:sleep",
         value_fn=lambda s: str(s.get("sleepModeCode", "")),
-        options_fn=lambda: SLEEP_MODE_OPTIONS,
+        options_fn=lambda: _SLEEP_MODE_FALLBACK,  # overridden dynamically in entity
         payload_fn=_sleep_payload,
     ),
     ZipAssistSelectEntityDescription(
@@ -113,7 +134,19 @@ class ZipAssistSelect(CoordinatorEntity, SelectEntity):
             sw_version=hydrotap.get("firmwareVersion"),
             serial_number=hydrotap.get("serialNumber"),
         )
-        self._attr_options = description.options_fn()
+        self._update_options()
+
+    def _update_options(self) -> None:
+        """Update options, using coordinator data for sleep modes."""
+        if self.entity_description.key == "sleep_mode":
+            self._attr_options = _build_sleep_mode_options(self.coordinator.data)
+        else:
+            self._attr_options = self.entity_description.options_fn()
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._update_options()
+        super()._handle_coordinator_update()
 
     @property
     def available(self) -> bool:

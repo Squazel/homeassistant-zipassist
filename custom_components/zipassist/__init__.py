@@ -6,8 +6,9 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from .client import ZipAssistClient
 from .const import DEFAULT_BASE_URL, DOMAIN
@@ -57,6 +58,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register services (only once, not per entry)
     await async_setup_services(hass)
+
+    # Listen for coordinator updates to detect auth failures
+    @callback
+    def _handle_coordinator_update() -> None:
+        """Check for auth failures and trigger reauth if needed."""
+        if not coordinator.last_update_success:
+            # Check if the failure was due to auth
+            last_ex = coordinator.last_exception
+            if last_ex is not None:
+                exc_str = str(last_ex).lower()
+                if "401" in exc_str or "unauthorized" in exc_str or "auth" in exc_str:
+                    _LOGGER.warning(
+                        "Auth failure detected, starting reauth for %s",
+                        entry.entry_id,
+                    )
+                    hass.async_create_task(
+                        hass.config_entries.flow.async_init(
+                            DOMAIN,
+                            context={"source": "reauth", "entry_id": entry.entry_id},
+                            data=entry,
+                        )
+                    )
+
+    entry.async_on_unload(
+        coordinator.async_add_listener(_handle_coordinator_update)
+    )
 
     return True
 

@@ -24,6 +24,22 @@ API_SYSTEM_EVENTS = "/api/system-events"
 API_COUNTRIES = "/api/countries"
 API_TIMEZONES = "/api/timezones"
 
+# API sub-paths (appended to /api/hydrotaps/{id}/)
+API_SETTINGS = "settings"
+API_SETTINGS_OPTIONS = "settings-options"
+API_TIMEZONE = "timezone"
+API_LOGS_GENERAL = "logs/general"
+API_LOGS_SYSTEM_FAULTS = "logs/system-faults"
+API_LOGS_FILTER_USAGE = "logs/filter-usage"
+API_LOGS_DISPENSE_EVENTS = "logs/dispense-events"
+API_LOGS_DAILY_USAGE = "logs/daily-usage"
+API_USAGE_WATER = "usage/water"
+API_USAGE_ENERGY = "usage/energy"
+API_GRAPHS_USAGE = "graphs/usage"
+API_GRAPHS_AVERAGE_USAGE = "graphs/average-usage"
+API_NOTES = "notes"
+API_HYDROTAP_SEARCH_OPTIONS = "/api/hydrotap-search-options"
+
 # Platforms
 PLATFORMS = ["sensor", "number", "binary_sensor", "switch", "select", "time"]
 

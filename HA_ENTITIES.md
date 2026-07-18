@@ -97,3 +97,172 @@ binary_sensor:
   - name: "The Warehouse - 1/Kitchen Hot Isolation"
     unique_id: zipassist_631a3385_hot_isolation
     icon: mdi:water-off
+
+# --- switches (read/write) ---
+
+switch:
+  - name: "The Warehouse - 1/Kitchen Safety Lock"
+    unique_id: zipassist_631a3385_safety_lock
+    icon: mdi:lock
+    note: "Toggle safety lock on/off. Only available if safetyLockEnabled is true in settings-options."
+
+  - name: "The Warehouse - 1/Kitchen Hot Isolation"
+    unique_id: zipassist_631a3385_hot_isolation
+    icon: mdi:water-off
+    note: "Toggle hot isolation on/off. Only available if hotIsolationEnabled is true in settings-options."
+
+  # Energy timer active toggles — conditionally created based on activeMode
+  - name: "The Warehouse - 1/Kitchen Energy Everyday On Active"
+    unique_id: zipassist_631a3385_energy_everyday_on_active
+    icon: mdi:timer-play-outline
+    note: "Only available when energy.activeMode == 'everyday'"
+
+  - name: "The Warehouse - 1/Kitchen Energy Everyday Off Active"
+    unique_id: zipassist_631a3385_energy_everyday_off_active
+    icon: mdi:timer-stop-outline
+    note: "Only available when energy.activeMode == 'everyday'"
+
+  # Daily schedule switches (mon–sun) — only when activeMode == 'daily'
+  - name: "The Warehouse - 1/Kitchen Energy Monday On Active"
+    unique_id: zipassist_631a3385_energy_daily_mon_on_active
+    icon: mdi:timer-play-outline
+
+  - name: "The Warehouse - 1/Kitchen Energy Monday Off Active"
+    unique_id: zipassist_631a3385_energy_daily_mon_off_active
+    icon: mdi:timer-stop-outline
+
+  # ... (tue–sun follow the same pattern)
+
+  # Weekday/weekend switches — only when activeMode == 'weekdayWeekend'
+  - name: "The Warehouse - 1/Kitchen Energy Weekday On Active"
+    unique_id: zipassist_631a3385_energy_weekday_on_active
+    icon: mdi:timer-play-outline
+
+  - name: "The Warehouse - 1/Kitchen Energy Weekday Off Active"
+    unique_id: zipassist_631a3385_energy_weekday_off_active
+    icon: mdi:timer-stop-outline
+
+  - name: "The Warehouse - 1/Kitchen Energy Weekend On Active"
+    unique_id: zipassist_631a3385_energy_weekend_on_active
+    icon: mdi:timer-play-outline
+
+  - name: "The Warehouse - 1/Kitchen Energy Weekend Off Active"
+    unique_id: zipassist_631a3385_energy_weekend_off_active
+    icon: mdi:timer-stop-outline
+
+# --- select entities (read/write) ---
+
+select:
+  - name: "The Warehouse - 1/Kitchen Sleep Mode"
+    unique_id: zipassist_631a3385_sleep_mode
+    icon: mdi:sleep
+    options: ["0", "1", "2", "3", "4", "5", "6", "7", "8"]
+    note: "Options are fetched from /api/sleep-modes when available; falls back to codes 0–8."
+
+  - name: "The Warehouse - 1/Kitchen Energy Mode"
+    unique_id: zipassist_631a3385_energy_mode
+    icon: mdi:power-plug
+    options: ["everyday", "daily", "weekdayWeekend"]
+    note: "Changing this will show/hide the corresponding switch and time entities."
+
+  - name: "The Warehouse - 1/Kitchen Sync Period"
+    unique_id: zipassist_631a3385_sync_period
+    icon: mdi:sync
+    options: ["00:10:00", "00:20:00", "00:30:00", "00:40:00", "00:50:00", "01:00:00"]
+    note: "How often the hydrotap syncs with the cloud. Range: 10–60 minutes."
+
+# --- time entities (read/write) ---
+
+time:
+  - name: "The Warehouse - 1/Kitchen Energy Everyday On Time"
+    unique_id: zipassist_631a3385_energy_everyday_on_time
+    icon: mdi:clock-start
+    note: "Only available when energy.activeMode == 'everyday'"
+
+  - name: "The Warehouse - 1/Kitchen Energy Everyday Off Time"
+    unique_id: zipassist_631a3385_energy_everyday_off_time
+    icon: mdi:clock-end
+    note: "Only available when energy.activeMode == 'everyday'"
+
+  # Daily schedule times (mon–sun) — only when activeMode == 'daily'
+  - name: "The Warehouse - 1/Kitchen Energy Monday On Time"
+    unique_id: zipassist_631a3385_energy_daily_mon_on_time
+    icon: mdi:clock-start
+
+  - name: "The Warehouse - 1/Kitchen Energy Monday Off Time"
+    unique_id: zipassist_631a3385_energy_daily_mon_off_time
+    icon: mdi:clock-end
+
+  # ... (tue–sun follow the same pattern)
+
+  # Weekday/weekend times — only when activeMode == 'weekdayWeekend'
+  - name: "The Warehouse - 1/Kitchen Energy Weekday On Time"
+    unique_id: zipassist_631a3385_energy_weekday_on_time
+    icon: mdi:clock-start
+
+  - name: "The Warehouse - 1/Kitchen Energy Weekday Off Time"
+    unique_id: zipassist_631a3385_energy_weekday_off_time
+    icon: mdi:clock-end
+
+  - name: "The Warehouse - 1/Kitchen Energy Weekend On Time"
+    unique_id: zipassist_631a3385_energy_weekend_on_time
+    icon: mdi:clock-start
+
+  - name: "The Warehouse - 1/Kitchen Energy Weekend Off Time"
+    unique_id: zipassist_631a3385_energy_weekend_off_time
+    icon: mdi:clock-end
+
+# --- services ---
+
+## zipassist.clear_system_fault
+# Clear a system fault on a hydrotap.
+#
+# Fields:
+#   device_id (required): The hydrotap ID (UUID).
+#   fault_id (required): The ID of the system fault to clear.
+#
+# Example:
+#   service: zipassist.clear_system_fault
+#   data:
+#     device_id: "631a3385-301b-4c9c-97ed-3a1a50061f5c"
+#     fault_id: "fault-abc123"
+
+## zipassist.set_temperature
+# Set the boiling or chilled water temperature.
+#
+# Fields:
+#   device_id (required): The hydrotap ID (UUID).
+#   water_type (required): "boiling" or "chilled".
+#   temperature (required): Target temperature in °C.
+#
+# Example:
+#   service: zipassist.set_temperature
+#   data:
+#     device_id: "631a3385-301b-4c9c-97ed-3a1a50061f5c"
+#     water_type: "boiling"
+#     temperature: 98.0
+
+# --- sensor extra_state_attributes ---
+
+## Filter sensors (filter_litres_remaining, filter_days_remaining, filter_estimated_days):
+#   internal_filter_limit_litres: 6000
+#   internal_filter_limit_days: 360
+#   external_filter_limit_litres: null
+#   external_filter_limit_days: null
+#   building_name: "The Warehouse"
+#   level: "1"
+#   location_in_building: "Kitchen"
+#   zip_managed: false
+#   can_view: true
+#   can_edit: true
+
+## System fault details sensor:
+#   faults:
+#     - faultCode: "F01"
+#       description: "Water leak detected"
+#       timestamp: "2026-07-17T08:35:32+0000"
+
+## Status log sensors (wifi_signal_strength, energy_*, sleep_mode_status, litres_filtered_*, days_filtered_*):
+#   log_timestamp: "2026-07-17T08:35:32+0000"
+#   time_since_last_log: "00:10:00"
+#   hydrotap_active: true

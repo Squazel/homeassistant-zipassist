@@ -9,6 +9,14 @@
                     "password": "Password",
                     "base_url": "Base URL"
                 }
+            },
+            "reauth": {
+                "title": "Reauthenticate ZipAssist CMMS",
+                "description": "Your credentials for {email} have expired or are invalid. Enter your new password.",
+                "data": {
+                    "password": "Password",
+                    "base_url": "Base URL"
+                }
             }
         },
         "error": {
@@ -17,7 +25,8 @@
             "unknown": "An unknown error occurred"
         },
         "abort": {
-            "already_configured": "This account is already configured"
+            "already_configured": "This account is already configured",
+            "reauth_successful": "Reauthentication successful"
         }
     },
     "entity": {

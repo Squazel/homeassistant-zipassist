@@ -22,6 +22,13 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
+REAUTH_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_PASSWORD): str,
+        vol.Optional(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
+    }
+)
+
 
 class ZipAssistConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for ZipAssist CMMS."""
@@ -63,5 +70,49 @@ class ZipAssistConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
+            errors=errors,
+        )
+
+    async def async_step_reauth(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reauthentication when credentials change."""
+        errors: dict[str, str] = {}
+
+        reauth_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+        email = reauth_entry.data[CONF_EMAIL] if reauth_entry else ""
+
+        if user_input is not None:
+            client = ZipAssistClient(
+                email=email,
+                password=user_input[CONF_PASSWORD],
+                base_url=user_input.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+            )
+
+            try:
+                if await client.authenticate():
+                    await client.close()
+                    # Update the existing entry with new credentials
+                    new_data = {**reauth_entry.data, **user_input}
+                    self.hass.config_entries.async_update_entry(
+                        reauth_entry, data=new_data
+                    )
+                    await self.hass.config_entries.async_reload(
+                        reauth_entry.entry_id
+                    )
+                    return self.async_abort(reason="reauth_successful")
+                errors["base"] = "invalid_auth"
+            except Exception:
+                _LOGGER.exception("Reauth connection test failed")
+                errors["base"] = "cannot_connect"
+            finally:
+                await client.close()
+
+        return self.async_show_form(
+            step_id="reauth",
+            data_schema=REAUTH_DATA_SCHEMA,
+            description_placeholders={"email": email},
             errors=errors,
         )
