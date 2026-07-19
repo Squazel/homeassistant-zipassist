@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 import pytest
@@ -97,7 +98,8 @@ class TestSensorEntities:
         """Test last_sync sensor."""
         desc = SENSOR_TYPES[5]  # last_sync
         entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
-        assert entity.native_value == "2026-07-17T08:35:32+0000"
+        expected = datetime(2026, 7, 17, 8, 35, 32, tzinfo=timezone.utc)
+        assert entity.native_value == expected
 
     def test_sensor_fault_details_with_faults(
         self, mock_coordinator, sample_hydrotap
