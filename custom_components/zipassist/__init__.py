@@ -68,6 +68,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register services (only once, not per entry)
     await async_setup_services(hass)
 
+    # Register the frontend card when the first entry is set up
+    await _async_register_frontend_card(hass)
+
     # Listen for coordinator updates to detect auth failures
     @callback
     def _handle_coordinator_update() -> None:

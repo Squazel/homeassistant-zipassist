@@ -75,49 +75,44 @@
 
   if (!document.getElementById("za-style")) {
     var s = document.createElement("style"); s.id = "za-style"; s.textContent = [
-      "zipassist-card .card{background:var(--ha-card-background,var(--card-background-color,#fff));border-radius:var(--ha-card-border-radius,12px);box-shadow:var(--ha-card-box-shadow,0 2px 2px 0 rgba(0,0,0,.14));border:var(--ha-card-border-width,1px) solid var(--ha-card-border-color,var(--divider-color,#e0e0e0));padding:16px}",
-      "zipassist-card .card-header{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:8px;border-bottom:1px solid var(--divider-color,#e0e0e0)}",
-      "zipassist-card .card-header .name{font-size:1.2em;font-weight:600;color:var(--primary-text-color);flex:1}",
-      "zipassist-card .card-header ha-icon{color:var(--primary-color,#03a9f4)}",
-      "zipassist-card .section{margin-bottom:14px}zipassist-card .section:last-child{margin-bottom:0}",
-      "zipassist-card .section-heading{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--secondary-text-color);cursor:pointer}",
-      "zipassist-card .section-heading ha-icon{--mdc-icon-size:16px}",
-      "zipassist-card .section-heading .s-chevron{margin-left:auto;transition:transform .2s;--mdc-icon-size:14px}",
-      "zipassist-card .section-heading .s-chevron.open{transform:rotate(180deg)}",
-      "zipassist-card .section-body.collapsed{display:none}",
-      "zipassist-card .info-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}",
-      "zipassist-card .info-tile{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--card-background-color,rgba(0,0,0,.02));border:1px solid var(--divider-color,rgba(0,0,0,.06))}",
-      "zipassist-card .info-tile ha-icon{color:var(--primary-color,#03a9f4)}",
-      "zipassist-card .tile-value{font-size:.9em;font-weight:500;color:var(--primary-text-color)}",
-      "zipassist-card .tile-label{font-size:.7em;color:var(--secondary-text-color)}",
-      "zipassist-card .entity-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;min-height:36px;border-bottom:1px solid var(--divider-color,rgba(0,0,0,.06))}",
-      "zipassist-card .entity-row:last-child{border-bottom:none}",
-      "zipassist-card .entity-label{font-size:.85em;color:var(--primary-text-color);flex:1}",
-      "zipassist-card .entity-control{display:flex;align-items:center;gap:8px}",
-      "zipassist-card .entity-value{font-size:.85em;color:var(--primary-text-color)}",
-      "zipassist-card .toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}",
-      "zipassist-card .toggle input{opacity:0;width:0;height:0}",
-      "zipassist-card .toggle .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s}",
-      "zipassist-card .toggle .slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}",
-      "zipassist-card .toggle input:checked+.slider{background:var(--primary-color,#03a9f4)}",
-      "zipassist-card .toggle input:checked+.slider::before{transform:translateX(20px)}",
-      "zipassist-card .no-data{text-align:center;color:var(--secondary-text-color);font-style:italic;padding:20px}",
-    ].join("\n");
+      "",".card{background:var(--ha-card-background,var(--card-background-color,#fff));border-radius:var(--ha-card-border-radius,12px);box-shadow:var(--ha-card-box-shadow,0 2px 2px 0 rgba(0,0,0,.14));border:var(--ha-card-border-width,1px) solid var(--ha-card-border-color,var(--divider-color,#e0e0e0));padding:16px}",
+      ".card-header{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:8px;border-bottom:1px solid var(--divider-color,#e0e0e0)}",
+      ".card-header .name{font-size:1.2em;font-weight:600;color:var(--primary-text-color);flex:1}",
+      ".card-header ha-icon{color:var(--primary-color,#03a9f4)}",
+      ".section{margin-bottom:14px}.section:last-child{margin-bottom:0}",
+      ".section-heading{display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:.8em;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--secondary-text-color);cursor:pointer}",
+      ".section-heading ha-icon{--mdc-icon-size:16px}",
+      ".section-heading .s-chevron{margin-left:auto;transition:transform .2s;--mdc-icon-size:14px}",
+      ".section-heading .s-chevron.open{transform:rotate(180deg)}",
+      ".section-body.collapsed{display:none}",
+      ".info-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px}",
+      ".info-tile{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:var(--card-background-color,rgba(0,0,0,.02));border:1px solid var(--divider-color,rgba(0,0,0,.06))}",
+      ".info-tile ha-icon{color:var(--primary-color,#03a9f4)}",
+      ".tile-value{font-size:.9em;font-weight:500;color:var(--primary-text-color)}",
+      ".tile-label{font-size:.7em;color:var(--secondary-text-color)}",
+      ".entity-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;min-height:36px;border-bottom:1px solid var(--divider-color,rgba(0,0,0,.06))}",
+      ".entity-row:last-child{border-bottom:none}",
+      ".entity-label{font-size:.85em;color:var(--primary-text-color);flex:1}",
+      ".entity-control{display:flex;align-items:center;gap:8px}",
+      ".entity-value{font-size:.85em;color:var(--primary-text-color)}",
+      ".toggle{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}",
+      ".toggle input{opacity:0;width:0;height:0}",
+      ".toggle .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;border-radius:24px;transition:.3s}",
+      ".toggle .slider::before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}",
+      ".toggle input:checked+.slider{background:var(--primary-color,#03a9f4)}",
+      ".toggle input:checked+.slider::before{transform:translateX(20px)}",
+      ".no-data{text-align:center;color:var(--secondary-text-color);font-style:italic;padding:20px}",
+    ].join("");
     document.head.appendChild(s);
   }
 
-  var ZipAssistCard = function () {
-    var el = document.createElement("div");
-    el.innerHTML = "<div class='card'><div class='no-data'>Loading...</div></div>";
-    return el;
-  };
+  var ZipAssistCard = function () { HTMLElement.call(this); };
   ZipAssistCard.prototype = Object.create(HTMLElement.prototype);
   ZipAssistCard.prototype.constructor = ZipAssistCard;
 
   Object.defineProperty(ZipAssistCard.prototype, "hass", {
     set: function (h) { this._hass = h; if (this._config) this._render(); }
   });
-
   ZipAssistCard.prototype.setConfig = function (c) { this._config = c || {}; this._render(); };
   ZipAssistCard.prototype.getCardSize = function () { return 8; };
 
