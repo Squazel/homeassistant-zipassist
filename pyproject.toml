@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["custom_components*"]
+include = ["custom_components*", "tools*"]
 
 [project.optional-dependencies]
 dev = [

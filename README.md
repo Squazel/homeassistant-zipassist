@@ -11,6 +11,7 @@ Home Assistant integration for the [ZipAssist CMMS](https://zipassist.zipindustr
 - Read and write device settings
 - Filter change reminders
 - Error and notification tracking
+- **Auto-loaded Lovelace card** — a dashboard card appears automatically after setup, mirroring the ZipAssist website layout
 
 ## Installation
 
@@ -35,6 +36,7 @@ Copy the `custom_components/zipassist` folder to your Home Assistant `custom_com
 
 - [API Endpoints](docs/api-endpoints.md) — Full reference of all known ZipAssist CMMS API endpoints
 - [Entities](docs/entities.md) — All 70 Home Assistant entities across 6 platforms
+- [Dashboards](docs/dashboards.md) — Auto-loaded Lovelace card and layout reference
 - [Architecture](docs/architecture.md) — Integration architecture and design decisions
 - [Development](docs/development.md) — Local development setup, testing, and API exploration
 - [TODO](TODO.md) — Remaining work items

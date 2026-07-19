@@ -51,3 +51,24 @@ These client methods exist but the coordinator never calls them, so the data is 
 |---|---|
 | HACS submission | `hacs.json` exists but not yet submitted |
 | Tests | Unit tests exist for client, config_flow, coordinator, helpers, services — could be expanded |
+
+## Dashboards / Cards
+
+Ship standard Lovelace dashboards as part of the HACS package to mirror the ZipAssist official website layout.
+
+### Goals
+- Provide a familiar UI for users transitioning from the ZipAssist website
+- Roughly mirror the website's layout and control groupings (not pixel-perfect)
+- Later iterations can introduce more modern or HA-native appearances
+
+### Design decisions
+- **Dashboard generator**: A Python script (`tools/generate_dashboards.py`) queries the Home Assistant REST API to auto-discover all zipassist entities, groups them by device, and emits ready-to-use dashboard YAML — no manual entity ID mapping needed
+- **Generator located at** `tools/generate_dashboards.py`; documented in `custom_components/zipassist/dashboards/README.md`
+- **Section layout** mirrors the website's HydroTap detail page: Info & Status, Filter Life, Usage, Safety & Security, Temperature, Dispense, Filter Limits, On/Off Timers, Sleep Mode
+
+### Implementation status
+1. ~~**Research**: Open the ZipAssist website in browser, analyze layout sections and control groupings~~ ✅
+2. ~~**Design**: Map website sections to HA card types~~ ✅
+3. ~~**Build**: Create the dashboard generator script~~ ✅
+4. **Integrate**: Ensure files are included in the HACS package manifest/distribution
+5. ~~**Document**: Add dashboard/card setup instructions to docs/~~ ✅

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -32,6 +33,7 @@ PLATFORMS: list[Platform] = [
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the ZipAssist CMMS component."""
     hass.data.setdefault(DOMAIN, {})
+    await _async_register_frontend_card(hass)
     return True
 
 
@@ -99,3 +101,33 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not hass.data[DOMAIN]:
             async_unload_services(hass)
     return unload_ok
+
+
+async def _async_register_frontend_card(hass: HomeAssistant) -> None:
+    """Register the ZipAssist frontend card so it auto-loads in the UI."""
+    try:
+        from homeassistant.components.frontend import add_extra_js_url
+        from homeassistant.components.http import StaticPathConfig
+
+        frontend_path = Path(__file__).parent / "frontend"
+        card_file = frontend_path / "zipassist-card.js"
+
+        if card_file.exists():
+            await hass.http.async_register_static_paths([
+                StaticPathConfig(
+                    f"/{DOMAIN}",
+                    str(frontend_path),
+                    cache_headers=False,
+                )
+            ])
+
+            card_url = f"/{DOMAIN}/zipassist-card.js"
+            add_extra_js_url(hass, card_url)
+
+            _LOGGER.debug("ZipAssist frontend card registered at %s", card_url)
+        else:
+            _LOGGER.warning(
+                "ZipAssist frontend card file not found at %s", card_file
+            )
+    except Exception:
+        _LOGGER.exception("Failed to register ZipAssist frontend card")
