@@ -22,13 +22,13 @@ class TestDeviceName:
         """Test device name with building, level, and location."""
         hydrotap = {
             "hydrotapLocation": {
-                "buildingName": "The Warehouse",
+                "buildingName": "My Office",
                 "level": "1",
                 "locationInBuilding": "Kitchen",
             },
             "moduleName": "BC 100/75",
         }
-        assert device_name(hydrotap) == "The Warehouse - 1/Kitchen"
+        assert device_name(hydrotap) == "My Office - 1/Kitchen"
 
     def test_building_and_level_only(self) -> None:
         """Test device name with building and level, no location."""
@@ -96,9 +96,9 @@ class TestDeviceName:
     def test_list_endpoint_fields(self) -> None:
         """Test with flat fields from list endpoint (no hydrotapLocation)."""
         hydrotap = {
-            "buildingName": "The Warehouse",
+            "buildingName": "My Office",
             "level": "1",
             "locationInBuilding": "Kitchen",
             "moduleName": "BC 100/75",
         }
-        assert device_name(hydrotap) == "The Warehouse - 1/Kitchen"
+        assert device_name(hydrotap) == "My Office - 1/Kitchen"

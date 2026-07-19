@@ -76,7 +76,7 @@ class TestSensorEntities:
         """Test creating a sensor entity."""
         desc = SENSOR_TYPES[0]  # filter_litres_remaining
         entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
-        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_filter_litres_remaining"
+        assert entity.unique_id == "zipassist_00000000-0000-0000-0000-000000000001_filter_litres_remaining"
         assert entity.device_info is not None
         assert entity.device_info["manufacturer"] == "Zip Industries"
         assert entity.device_info["model"] == "BC 100/75"
@@ -230,7 +230,7 @@ class TestNumberEntities:
         """Test creating a number entity."""
         desc = NUMBER_TYPES[0]  # boiling_temp
         entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
-        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_boiling_temp"
+        assert entity.unique_id == "zipassist_00000000-0000-0000-0000-000000000001_boiling_temp"
         assert entity.entity_description.native_unit_of_measurement == "°C"
 
     def test_number_native_value(self, mock_coordinator, sample_hydrotap) -> None:
@@ -260,7 +260,7 @@ class TestNumberEntities:
         entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
         await entity.async_set_native_value(95.0)
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"boiling": {"temp": 95.0}},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -332,7 +332,7 @@ class TestNumberEntities:
         entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
         await entity.async_set_native_value(5000.0)
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"internalFilterLimits": {"litres": 5000.0}},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -344,7 +344,7 @@ class TestNumberEntities:
         entity = ZipAssistNumber(mock_coordinator, sample_hydrotap, desc)
         await entity.async_set_native_value(10.0)
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"boiling": {"duration": 10.0}},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -379,7 +379,7 @@ class TestBinarySensorEntities:
         """Test creating a binary sensor entity."""
         desc = BINARY_SENSOR_TYPES[0]  # system_fault
         entity = ZipAssistBinarySensor(mock_coordinator, sample_hydrotap, desc)
-        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_system_fault"
+        assert entity.unique_id == "zipassist_00000000-0000-0000-0000-000000000001_system_fault"
 
     def test_system_fault_on(self, mock_coordinator, sample_hydrotap) -> None:
         """Test system_fault is_on when faults exist."""
@@ -445,7 +445,7 @@ class TestSwitchEntities:
         """Test creating a switch entity."""
         desc = SWITCH_TYPES[0]  # safety_lock
         entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
-        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_safety_lock"
+        assert entity.unique_id == "zipassist_00000000-0000-0000-0000-000000000001_safety_lock"
         assert entity.device_info is not None
 
     def test_switch_is_on(self, mock_coordinator, sample_hydrotap) -> None:
@@ -467,7 +467,7 @@ class TestSwitchEntities:
         entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
         await entity.async_turn_on()
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"safetyLockEnabled": True},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -479,7 +479,7 @@ class TestSwitchEntities:
         entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
         await entity.async_turn_off()
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"hotIsolationEnabled": False},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -521,7 +521,7 @@ class TestSwitchEntities:
         entity = ZipAssistSwitch(mock_coordinator, sample_hydrotap, desc)
         await entity.async_turn_on()
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"energy": {"everyday": {"onTimeActive": True}}},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -563,7 +563,7 @@ class TestSelectEntities:
         """Test creating a select entity."""
         desc = SELECT_TYPES[0]  # sleep_mode
         entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
-        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_sleep_mode"
+        assert entity.unique_id == "zipassist_00000000-0000-0000-0000-000000000001_sleep_mode"
         assert entity.device_info is not None
 
     def test_sleep_mode_current_option(self, mock_coordinator, sample_hydrotap) -> None:
@@ -599,7 +599,7 @@ class TestSelectEntities:
         entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
         await entity.async_select_option("3")
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"sleepModeCode": 3},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -611,7 +611,7 @@ class TestSelectEntities:
         entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
         await entity.async_select_option("daily")
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"energy": {"activeMode": "daily"}},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -644,7 +644,7 @@ class TestSelectEntities:
         entity = ZipAssistSelect(mock_coordinator, sample_hydrotap, desc)
         await entity.async_select_option("00:30:00")
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"syncPeriod": "00:30:00"},
         )
         mock_coordinator.async_request_refresh.assert_called_once()
@@ -689,7 +689,7 @@ class TestTimeEntities:
         """Test creating a time entity."""
         desc = TIME_TYPES[0]  # energy_everyday_on_time
         entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
-        assert entity.unique_id == "zipassist_631a3385-301b-4c9c-97ed-3a1a50061f5c_energy_everyday_on_time"
+        assert entity.unique_id == "zipassist_00000000-0000-0000-0000-000000000001_energy_everyday_on_time"
         assert entity.device_info is not None
 
     def test_time_native_value(self, mock_coordinator, sample_hydrotap) -> None:
@@ -714,7 +714,7 @@ class TestTimeEntities:
         entity = ZipAssistTime(mock_coordinator, sample_hydrotap, desc)
         await entity.async_set_value(dtime(8, 30, 0))
         mock_coordinator.client.update_settings.assert_called_once_with(
-            "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+            "00000000-0000-0000-0000-000000000001",
             {"energy": {"everyday": {"onTime": "08:30:00"}}},
         )
         mock_coordinator.async_request_refresh.assert_called_once()

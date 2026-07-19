@@ -305,8 +305,8 @@ sys.modules["voluptuous"] = _voluptuous
 def sample_hydrotap():
     """Return a sample hydrotap dict (from list endpoint)."""
     return {
-        "hydrotapId": "631a3385-301b-4c9c-97ed-3a1a50061f5c",
-        "serialNumber": "2017102302086",
+        "hydrotapId": "00000000-0000-0000-0000-000000000001",
+        "serialNumber": "1000000000001",
         "moduleName": "BC 100/75",
         "firmwareVersion": "B03.1.00 3.6 1.05",
         "calibrationDate": "2017-11-06T00:00:00.000Z",
@@ -317,7 +317,7 @@ def sample_hydrotap():
         "averageDailyUsage": 4.6,
         "peakHourlyUsage": 2.8,
         "lastSyncTimestamp": "2026-07-17T08:35:32+0000",
-        "buildingName": "The Warehouse",
+        "buildingName": "My Office",
         "level": "1",
         "locationInBuilding": "Kitchen",
         "country": "Australia",
@@ -355,7 +355,7 @@ def sample_hydrotap_no_location():
 def sample_settings():
     """Return sample settings for a hydrotap."""
     return {
-        "hydrotapId": "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+        "hydrotapId": "00000000-0000-0000-0000-000000000001",
         "syncPeriod": "00:10:00",
         "sleepModeCode": 6,
         "safetyLockEnabled": True,
@@ -448,7 +448,7 @@ def sample_status_log():
     """Return sample latest status log."""
     return {
         "hydrotapLogId": "log-1",
-        "hydrotapId": "631a3385-301b-4c9c-97ed-3a1a50061f5c",
+        "hydrotapId": "00000000-0000-0000-0000-000000000001",
         "timestamp": "2026-07-17T08:35:32+0000",
         "energyKwhSinceLastLog": 0.5,
         "energyKwhTotal": 1234.5,

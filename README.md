@@ -31,6 +31,14 @@ Copy the `custom_components/zipassist` folder to your Home Assistant `custom_com
 2. Search for "ZipAssist CMMS"
 3. Enter your ZipAssist credentials (email and password)
 
+## Documentation
+
+- [API Endpoints](docs/api-endpoints.md) — Full reference of all known ZipAssist CMMS API endpoints
+- [Entities](docs/entities.md) — All 70 Home Assistant entities across 6 platforms
+- [Architecture](docs/architecture.md) — Integration architecture and design decisions
+- [Development](docs/development.md) — Local development setup, testing, and API exploration
+- [TODO](TODO.md) — Remaining work items
+
 ## Development
 
 ```bash

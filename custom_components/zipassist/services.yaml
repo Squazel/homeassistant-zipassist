@@ -6,7 +6,7 @@ clear_system_fault:
       name: Device ID
       description: The hydrotap ID (UUID) of the device.
       required: true
-      example: "631a3385-301b-4c9c-97ed-3a1a50061f5c"
+      example: "00000000-0000-0000-0000-000000000001"
       selector:
         text: {}
     fault_id:
@@ -25,7 +25,7 @@ set_temperature:
       name: Device ID
       description: The hydrotap ID (UUID) of the device.
       required: true
-      example: "631a3385-301b-4c9c-97ed-3a1a50061f5c"
+      example: "00000000-0000-0000-0000-000000000001"
       selector:
         text: {}
     water_type:
