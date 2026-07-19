@@ -196,7 +196,7 @@
 
   window.customCards = window.customCards || [];
   window.customCards.push({
-    type: "custom:zipassist-card",
+    type: "zipassist-card",
     name: "ZipAssist HydroTap",
     description: "ZipAssist CMMS HydroTap monitoring & control card",
     preview: true,
