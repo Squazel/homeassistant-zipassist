@@ -208,17 +208,14 @@ async def async_setup_entry(
     """Set up ZipAssist time entities from a config entry."""
     coordinator: DataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     hydrotaps: list[dict] = coordinator.data.get("hydrotaps", [])
-    settings_map: dict = coordinator.data.get("settings", {})
 
     entities: list[ZipAssistTime] = []
     for hydrotap in hydrotaps:
         hid = hydrotap.get("hydrotapId")
         if not hid:
             continue
-        tap_settings = settings_map.get(hid, {})
         for description in TIME_TYPES:
-            if description.available_fn(tap_settings):
-                entities.append(ZipAssistTime(coordinator, hydrotap, description))
+            entities.append(ZipAssistTime(coordinator, hydrotap, description))
 
     _LOGGER.debug("Creating %d time entities", len(entities))
     async_add_entities(entities)

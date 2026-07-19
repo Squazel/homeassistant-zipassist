@@ -228,7 +228,6 @@ async def async_setup_entry(
     coordinator: DataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
     hydrotaps: list[dict] = coordinator.data.get("hydrotaps", [])
     settings_options_map: dict = coordinator.data.get("settings_options", {})
-    settings_map: dict = coordinator.data.get("settings", {})
 
     entities: list[ZipAssistSwitch] = []
     for hydrotap in hydrotaps:
@@ -236,13 +235,9 @@ async def async_setup_entry(
         if not hid:
             continue
         tap_options = settings_options_map.get(hid, {})
-        tap_settings = settings_map.get(hid, {})
         for description in SWITCH_TYPES:
-            # Safety switches use settings_options; energy switches use settings
-            if description.key.startswith("energy_"):
-                if not description.available_fn(tap_settings):
-                    continue
-            else:
+            # Safety switches use settings_options to check feature availability
+            if not description.key.startswith("energy_"):
                 if not description.available_fn(tap_options):
                     continue
             entities.append(
