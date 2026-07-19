@@ -77,6 +77,11 @@ class ZipAssistBinarySensor(CoordinatorEntity, BinarySensorEntity):
         return self.coordinator.last_update_success
 
     @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return integration marker for frontend card discovery."""
+        return {"integration": DOMAIN}
+
+    @property
     def is_on(self) -> bool | None:
         """Return true if there are active system faults."""
         faults = (self.coordinator.data.get("faults") or {}).get(

@@ -154,6 +154,11 @@ class ZipAssistSelect(CoordinatorEntity, SelectEntity):
         return self.coordinator.last_update_success
 
     @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return integration marker for frontend card discovery."""
+        return {"integration": DOMAIN}
+
+    @property
     def current_option(self) -> str | None:
         """Return the currently selected option."""
         settings = (self.coordinator.data.get("settings") or {}).get(

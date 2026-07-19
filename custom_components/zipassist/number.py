@@ -247,6 +247,11 @@ class ZipAssistNumber(CoordinatorEntity, NumberEntity):
         return self.coordinator.last_update_success
 
     @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return integration marker for frontend card discovery."""
+        return {"integration": DOMAIN}
+
+    @property
     def native_value(self) -> float | None:
         """Return the current value."""
         settings = (self.coordinator.data.get("settings") or {}).get(

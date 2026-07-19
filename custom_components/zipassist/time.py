@@ -178,6 +178,11 @@ class ZipAssistTime(CoordinatorEntity, TimeEntity):
         return self.coordinator.last_update_success
 
     @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return integration marker for frontend card discovery."""
+        return {"integration": DOMAIN}
+
+    @property
     def native_value(self) -> time | None:
         """Return the current time value."""
         settings = (self.coordinator.data.get("settings") or {}).get(

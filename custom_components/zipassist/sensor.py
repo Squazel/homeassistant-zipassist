@@ -252,7 +252,7 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Return additional state attributes for rich data."""
-        attrs: dict[str, Any] = {}
+        attrs: dict[str, Any] = {"integration": DOMAIN}
 
         # Find the hydrotap in the list
         hydrotap: dict[str, Any] | None = None

@@ -47,8 +47,8 @@
       var id = ks[i], dot = id.indexOf(".");
       if (dot < 0 || !doms[id.substring(0, dot)]) continue;
       var st = h.states[id];
-      var uid = (st && st.attributes && st.attributes.unique_id) || "";
-      if (uid.indexOf("zipassist_") === 0) out.push(id);
+      var integ = (st && st.attributes && st.attributes.integration) || "";
+      if (integ === "zipassist") out.push(id);
     }
     return out;
   }
@@ -121,7 +121,11 @@
 
   ZipAssistCard.prototype._render = function () {
     var h = this._hass, c = this._config;
-    if (!h || !c) return;
+    if (!c) return;
+    if (!h) {
+      this.innerHTML = '<div class="card"><div class="card-header"><ha-icon icon="mdi:water-pump"></ha-icon><span class="name">ZipAssist HydroTap</span></div><div class="no-data">Add to dashboard to load entities.</div></div>';
+      return;
+    }
 
     var ids = findIds(h);
     if (!ids.length) {

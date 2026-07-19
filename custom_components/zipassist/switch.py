@@ -190,6 +190,11 @@ class ZipAssistSwitch(CoordinatorEntity, SwitchEntity):
         return self.coordinator.last_update_success
 
     @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return integration marker for frontend card discovery."""
+        return {"integration": DOMAIN}
+
+    @property
     def is_on(self) -> bool | None:
         """Return true if the setting is enabled."""
         settings = (self.coordinator.data.get("settings") or {}).get(
