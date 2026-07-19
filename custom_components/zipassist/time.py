@@ -169,7 +169,7 @@ class ZipAssistTime(CoordinatorEntity, TimeEntity):
             manufacturer="Zip Industries",
             model=hydrotap.get("moduleName"),
             sw_version=hydrotap.get("firmwareVersion"),
-            serial_number=hydrotap.get("serialNumber"),
+            serial_number=str(hydrotap.get("serialNumber", "")),
         )
 
     @property

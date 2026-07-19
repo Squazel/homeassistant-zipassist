@@ -132,7 +132,7 @@ class ZipAssistSelect(CoordinatorEntity, SelectEntity):
             manufacturer="Zip Industries",
             model=hydrotap.get("moduleName"),
             sw_version=hydrotap.get("firmwareVersion"),
-            serial_number=hydrotap.get("serialNumber"),
+            serial_number=str(hydrotap.get("serialNumber", "")),
         )
         self._update_options()
 

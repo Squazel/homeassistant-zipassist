@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -126,7 +127,6 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         key="energy_since_last_log",
         translation_key="energy_since_last_log",
         native_unit_of_measurement="kWh",
-        state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.ENERGY,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: None,
@@ -186,6 +186,23 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
 )
 
 
+def _parse_timestamp(raw: str) -> datetime | None:
+    """Parse an ISO 8601 timestamp string into a datetime.
+
+    Handles formats like '2026-07-19T05:22:00+0000' (no colon in tz offset).
+    """
+    if not raw:
+        return None
+    try:
+        # Handle +0000 / -0500 offset format (missing colon)
+        if len(raw) >= 5 and raw[-5] in ("+", "-") and raw[-3] != ":":
+            raw = raw[:-2] + ":" + raw[-2:]
+        return datetime.fromisoformat(raw)
+    except (ValueError, TypeError):
+        _LOGGER.debug("Could not parse timestamp: %s", raw)
+        return None
+
+
 class ZipAssistSensor(CoordinatorEntity, SensorEntity):
     """Sensor for a ZipAssist hydrotap."""
 
@@ -209,7 +226,7 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
             manufacturer="Zip Industries",
             model=hydrotap.get("moduleName"),
             sw_version=hydrotap.get("firmwareVersion"),
-            serial_number=hydrotap.get("serialNumber"),
+            serial_number=str(hydrotap.get("serialNumber", "")),
         )
 
     @property
@@ -317,7 +334,7 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
         return attrs or None
 
     @property
-    def native_value(self) -> str | int | float | None:
+    def native_value(self) -> str | int | float | datetime | None:
         """Return the state of the sensor."""
         key = self.entity_description.key
 
@@ -332,6 +349,16 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
                 f.get("faultCode", f.get("code", "Unknown"))
                 for f in faults
             )
+
+        # last_sync: convert ISO 8601 string to datetime for TIMESTAMP device class
+        if key == "last_sync":
+            for h in self.coordinator.data.get("hydrotaps", []):
+                if h.get("hydrotapId") == self._hydrotap_id:
+                    raw = h.get("lastSyncTimestamp")
+                    if raw:
+                        return _parse_timestamp(raw)
+                    return None
+            return None
 
         # Status log sensors use the status_logs dict
         status_log = (self.coordinator.data.get("status_logs") or {}).get(

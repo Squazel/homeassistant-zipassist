@@ -45,7 +45,10 @@
     var out = [], ks = Object.keys(h.states), doms = {sensor:1,switch:1,number:1,"select":1,time:1,binary_sensor:1};
     for (var i = 0; i < ks.length; i++) {
       var id = ks[i], dot = id.indexOf(".");
-      if (dot > 0 && id.indexOf("zipassist") > 0 && doms[id.substring(0, dot)]) out.push(id);
+      if (dot < 0 || !doms[id.substring(0, dot)]) continue;
+      var st = h.states[id];
+      var uid = (st && st.attributes && st.attributes.unique_id) || "";
+      if (uid.indexOf("zipassist_") === 0) out.push(id);
     }
     return out;
   }
