@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 from pathlib import Path
 
 from homeassistant.config_entries import ConfigEntry
@@ -12,6 +10,13 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.update_coordinator import UpdateFailed
+
+try:
+    from homeassistant.components.frontend import add_extra_js_url
+    from homeassistant.components.http import StaticPathConfig
+    FRONTEND_AVAILABLE = True
+except ImportError:
+    FRONTEND_AVAILABLE = False
 
 from .client import ZipAssistClient
 from .const import DEFAULT_BASE_URL, DOMAIN
@@ -107,8 +112,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_register_frontend_card(hass: HomeAssistant) -> None:
     """Register the ZipAssist frontend card so it auto-loads in the UI."""
+    if not FRONTEND_AVAILABLE:
+        return
+
     try:
-        # Serve the JS file via a static path
         frontend_path = Path(__file__).parent / "frontend"
         card_file = frontend_path / "zipassist-card.js"
 
@@ -118,74 +125,17 @@ async def _async_register_frontend_card(hass: HomeAssistant) -> None:
             )
             return
 
-        # Try the new StaticPathConfig API first, fall back to register_static_path
-        try:
-            from homeassistant.components.http import StaticPathConfig
-            await hass.http.async_register_static_paths([
-                StaticPathConfig(
-                    f"/{DOMAIN}",
-                    str(frontend_path),
-                    cache_headers=False,
-                )
-            ])
-        except ImportError:
-            # Older HA versions
-            hass.http.register_static_path(
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(
                 f"/{DOMAIN}",
                 str(frontend_path),
                 cache_headers=False,
             )
+        ])
 
         card_url = f"/{DOMAIN}/zipassist-card.js"
-
-        # Register as an ES module resource
-        # HA >= 2024.6: use add_extra_module_url
-        # HA < 2024.6: use add_extra_js_url with type=module via lovelace resource store
-        try:
-            from homeassistant.components.frontend import add_extra_module_url
-            add_extra_module_url(hass, card_url)
-            _LOGGER.debug("Card registered as module via add_extra_module_url")
-        except ImportError:
-            # Fallback: register via lovelace resource storage
-            _register_resource_in_store(hass, card_url)
+        add_extra_js_url(hass, card_url)
 
         _LOGGER.debug("ZipAssist frontend card registered at %s", card_url)
     except Exception:
         _LOGGER.exception("Failed to register ZipAssist frontend card")
-
-
-def _register_resource_in_store(hass: HomeAssistant, url: str) -> None:
-    """Register a Lovelace module resource via the storage file.
-
-    Used as a fallback when add_extra_module_url is not available (HA < 2024.6).
-    """
-    config_dir = hass.config.path()
-    resources_path = os.path.join(config_dir, ".storage", "lovelace_resources")
-    resource_id = f"{DOMAIN}_card"
-
-    try:
-        with open(resources_path, "r") as f:
-            store = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        store = {"items": [], "version": 1}
-
-    items = store.get("data", store.get("items", []))
-
-    # Remove existing entry for this card
-    items = [r for r in items if r.get("url", "") != url]
-
-    # Add our card as an ES module
-    items.append({
-        "id": resource_id,
-        "url": url,
-        "type": "module",
-    })
-
-    store["data"] = items
-    store["version"] = store.get("version", 0) + 1
-
-    os.makedirs(os.path.dirname(resources_path), exist_ok=True)
-    with open(resources_path, "w") as f:
-        json.dump(store, f, indent=2)
-
-    _LOGGER.debug("Card registered via lovelace_resources store")
