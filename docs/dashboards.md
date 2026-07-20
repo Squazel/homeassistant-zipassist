@@ -26,14 +26,14 @@ If you have multiple HydroTaps, you can add a `device` option to show
 only one (partial name match works):
 
 ```yaml
-type: zipassist-card
+type: custom:zipassist-card
 device: "Kitchen"
 ```
 
 ### Optional: Custom title
 
 ```yaml
-type: zipassist-card
+type: custom:zipassist-card
 title: "Office Tap"
 ```
 
