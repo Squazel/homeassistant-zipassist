@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.switch import (
     SwitchEntity,
@@ -105,7 +106,7 @@ SWITCH_TYPES: tuple[ZipAssistSwitchEntityDescription, ...] = (
             key=f"energy_daily_{day}_on_active",
             translation_key=f"energy_daily_{day}_on_active",
             icon="mdi:timer-play-outline",
-            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("onTimeActive"),
+            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("onTimeActive"),  # type: ignore[misc]
             available_fn=_energy_available("daily"),
             payload_fn=_energy_active_payload("daily", day, "onTimeActive"),
         )
@@ -116,7 +117,7 @@ SWITCH_TYPES: tuple[ZipAssistSwitchEntityDescription, ...] = (
             key=f"energy_daily_{day}_off_active",
             translation_key=f"energy_daily_{day}_off_active",
             icon="mdi:timer-stop-outline",
-            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("offTimeActive"),
+            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("offTimeActive"),  # type: ignore[misc]
             available_fn=_energy_available("daily"),
             payload_fn=_energy_active_payload("daily", day, "offTimeActive"),
         )
@@ -187,7 +188,7 @@ class ZipAssistSwitch(CoordinatorEntity, SwitchEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return bool(self.coordinator.last_update_success)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

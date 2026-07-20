@@ -110,7 +110,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Only unload services if no more entries
         if not hass.data[DOMAIN]:
             async_unload_services(hass)
-    return unload_ok
+    return bool(unload_ok)
 
 
 async def _async_register_frontend_card(hass: HomeAssistant) -> None:

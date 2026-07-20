@@ -567,10 +567,10 @@ class ZipAssistClient:
                             retry_resp.status == 200
                             and "json" in (retry_resp.content_type or "")
                         ):
-                            return await retry_resp.json()
+                            return await retry_resp.json()  # type: ignore[no-any-return]
                 return None
             if resp.status == 200 and "json" in (resp.content_type or ""):
-                return await resp.json()
+                return await resp.json()  # type: ignore[no-any-return]
             _LOGGER.debug("GET %s → %s", url, resp.status)
             return None
 

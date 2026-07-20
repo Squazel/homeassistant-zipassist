@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -151,7 +152,7 @@ class ZipAssistSelect(CoordinatorEntity, SelectEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return bool(self.coordinator.last_update_success)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

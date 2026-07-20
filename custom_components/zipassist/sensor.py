@@ -233,7 +233,7 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return bool(self.coordinator.last_update_success)
 
     def _resolve_sleep_mode_name(self, code: int | str | None) -> str | None:
         """Resolve a numeric sleep mode code to a human-readable name.
@@ -247,8 +247,8 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
         for mode in sleep_modes:
             mode_code = mode.get("code", mode.get("sleepModeCode", mode.get("id")))
             if str(mode_code) == str(code):
-                return mode.get("name", str(code))
-        return str(code)
+                return str(mode.get("name", str(code)))
+        return str(code)  # type: ignore[no-any-return]
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
@@ -378,7 +378,7 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
             "days_filtered_external": lambda l: l.get("daysFilteredExternal"),
         }
         if key in status_log_map:
-            return status_log_map[key](status_log)
+            return status_log_map[key](status_log)  # type: ignore[no-any-return]
 
         # Default: look up in hydrotaps list
         for h in self.coordinator.data.get("hydrotaps", []):

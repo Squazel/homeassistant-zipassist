@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -33,7 +34,7 @@ SET_TEMPERATURE_SCHEMA = vol.Schema(
 
 def _find_coordinator_for_device(
     hass: HomeAssistant, device_id: str
-) -> tuple[object | None, str | None]:
+) -> tuple[Any | None, str | None]:
     """Find the coordinator and hydrotap_id that owns the given device_id.
 
     Returns (coordinator, hydrotap_id) or (None, None) if not found.

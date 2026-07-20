@@ -30,7 +30,7 @@ REAUTH_DATA_SCHEMA = vol.Schema(
 )
 
 
-class ZipAssistConfigFlow(ConfigFlow, domain=DOMAIN):
+class ZipAssistConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for ZipAssist CMMS."""
 
     VERSION = 1

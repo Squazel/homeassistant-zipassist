@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import time
+from typing import Any
 
 from homeassistant.components.time import TimeEntity, TimeEntityDescription
 from homeassistant.config_entries import ConfigEntry
@@ -93,7 +94,7 @@ TIME_TYPES: tuple[ZipAssistTimeEntityDescription, ...] = (
             key=f"energy_daily_{day}_on_time",
             translation_key=f"energy_daily_{day}_on_time",
             icon="mdi:clock-start",
-            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("onTime"),
+            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("onTime"),  # type: ignore[misc]
             available_fn=_energy_available("daily"),
             payload_fn=_energy_time_payload("daily", day, "onTime"),
         )
@@ -104,7 +105,7 @@ TIME_TYPES: tuple[ZipAssistTimeEntityDescription, ...] = (
             key=f"energy_daily_{day}_off_time",
             translation_key=f"energy_daily_{day}_off_time",
             icon="mdi:clock-end",
-            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("offTime"),
+            value_fn=lambda s, d=day: (s.get("energy") or {}).get("daily", {}).get(d, {}).get("offTime"),  # type: ignore[misc]
             available_fn=_energy_available("daily"),
             payload_fn=_energy_time_payload("daily", day, "offTime"),
         )
@@ -175,7 +176,7 @@ class ZipAssistTime(CoordinatorEntity, TimeEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.coordinator.last_update_success
+        return bool(self.coordinator.last_update_success)
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
