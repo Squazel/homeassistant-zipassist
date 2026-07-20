@@ -41,30 +41,19 @@
     { t: "Sleep Mode", i: "mdi:sleep", e: [["sleep_mode","Sleep Mode"]]},
   ];
 
-  function findIds(h) {
-    var out = [], ks = Object.keys(h.states), doms = {sensor:1,switch:1,number:1,"select":1,time:1,binary_sensor:1};
-    for (var i = 0; i < ks.length; i++) {
-      var id = ks[i], dot = id.indexOf(".");
-      if (dot < 0 || !doms[id.substring(0, dot)]) continue;
-      var st = h.states[id];
-      var integ = (st && st.attributes && st.attributes.integration) || "";
-      if (integ === "zipassist") out.push(id);
-    }
-    return out;
-  }
+  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-  function groupByDevice(ids, h) {
-    var g = {};
-    for (var i = 0; i < ids.length; i++) {
-      var eid = ids[i], st = h.states[eid];
-      var devId = ((h.entities && h.entities[eid]) || {}).device_id || "";
-      var dn = (h.devices && h.devices[devId] && h.devices[devId].name) || "Unknown";
-      if (!g[dn]) g[dn] = {};
-      var uid = (st && st.attributes && st.attributes.unique_id) || "";
-      var m = uid.match(/^zipassist_[a-f0-9-]{36}_(.+)$/);
-      if (!g[dn][m ? m[1] : eid]) g[dn][m ? m[1] : eid] = eid;
+  function buildEntityMap(h, deviceId) {
+    var ents = {};
+    for (var eid in h.entities) {
+      var ereg = h.entities[eid];
+      if (ereg.device_id === deviceId && ereg.platform === "zipassist") {
+        var uid = ereg.unique_id || "";
+        var m = uid.match(/^zipassist_[a-f0-9-]{36}_(.+)$/);
+        ents[m ? m[1] : eid] = eid;
+      }
     }
-    return g;
+    return ents;
   }
 
   function fmt(eid, h) {
@@ -117,35 +106,52 @@
   Object.defineProperty(ZipAssistCard.prototype, "hass", {
     set: function (h) { this._hass = h; if (this._config) this._render(); }
   });
-  ZipAssistCard.prototype.setConfig = function (c) { this._config = c || {}; this._render(); };
+  ZipAssistCard.prototype.setConfig = function (c) {
+    this._config = c || {};
+    if (this._hass) this._render();
+  };
+
+  ZipAssistCard.getStubConfig = function () {
+    return {};
+  };
+
+  ZipAssistCard.getConfigForm = function () {
+    return {
+      schema: [
+        { name: "device", required: true, selector: { device: { filter: { integration: "zipassist" } } } },
+        { name: "title", selector: { text: {} } },
+      ],
+    };
+  };
+
   ZipAssistCard.prototype.getCardSize = function () { return 8; };
 
   ZipAssistCard.prototype._render = function () {
     var h = this._hass, c = this._config;
     if (!c) return;
+
     if (!h) {
-      this.innerHTML = '<div class="card"><div class="card-header"><ha-icon icon="mdi:water-pump"></ha-icon><span class="name">ZipAssist HydroTap</span></div><div class="no-data">Add to dashboard to load entities.</div></div>';
+      this.innerHTML = '<div class="card"><div class="card-header"><ha-icon icon="mdi:water-pump"></ha-icon><span class="name">ZipAssist HydroTap</span></div><div class="no-data">Add to dashboard to see your HydroTap.</div></div>';
       return;
     }
 
-    var ids = findIds(h);
-    if (!ids.length) {
-      this.innerHTML = '<div class="card"><div class="no-data">No ZipAssist entities found.</div></div>';
+    var deviceId = c.device;
+    if (!deviceId) {
+      this.innerHTML = '<div class="card"><div class="card-header"><ha-icon icon="mdi:water-pump"></ha-icon><span class="name">ZipAssist HydroTap</span></div><div class="no-data">Select a HydroTap device in the card config.</div></div>';
       return;
     }
 
-    var groups = groupByDevice(ids, h);
-    var names = Object.keys(groups).sort();
+    var ents = buildEntityMap(h, deviceId);
 
-    if (c.device) {
-      var dv = c.device.toLowerCase();
-      names = names.filter(function (n) { return n === c.device || n.toLowerCase().indexOf(dv) > -1; });
+    if (!Object.keys(ents).length) {
+      this.innerHTML = '<div class="card"><div class="no-data">No entities found for this device.</div></div>';
+      return;
     }
 
-    var html = '';
-    for (var di = 0; di < names.length; di++) {
-      var dn = names[di], ents = groups[dn], title = c.title || dn;
-      html += '<div class="card"><div class="card-header"><ha-icon icon="mdi:water-pump"></ha-icon><span class="name">' + esc(title) + '</span></div>';
+    var devName = (h.devices && h.devices[deviceId] && h.devices[deviceId].name) || "ZipAssist HydroTap";
+    var title = c.title || devName;
+
+    var html = '<div class="card"><div class="card-header"><ha-icon icon="mdi:water-pump"></ha-icon><span class="name">' + esc(title) + '</span></div>';
 
       for (var si = 0; si < SECTIONS.length; si++) {
         var sec = SECTIONS[si], avail = [];
@@ -155,7 +161,7 @@
         }
         if (!avail.length) continue;
 
-        var ck = dn + "||" + sec.t, sc = (this._sc || {})[ck] || false;
+        var ck = deviceId + "||" + sec.t, sc = (this._sc || {})[ck] || false;
 
         html += '<div class="section"><div class="section-heading" data-ck="' + esc(ck) + '">';
         html += '<ha-icon icon="' + (sec.i || "mdi:circle") + '"></ha-icon><span>' + esc(sec.t) + '</span>';
@@ -181,8 +187,7 @@
         }
         html += '</div></div>';
       }
-      html += '</div>';
-    }
+html += '</div>';
 
     this.innerHTML = html;
     var self = this;
