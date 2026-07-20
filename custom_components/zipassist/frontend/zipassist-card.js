@@ -206,6 +206,6 @@
     type: "zipassist-card",
     name: "ZipAssist HydroTap",
     description: "ZipAssist CMMS HydroTap monitoring & control card",
-    preview: true,
+    preview: false,
   });
 })();

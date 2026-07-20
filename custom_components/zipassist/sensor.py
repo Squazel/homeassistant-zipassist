@@ -127,6 +127,7 @@ SENSOR_TYPES: tuple[ZipAssistSensorEntityDescription, ...] = (
         key="energy_since_last_log",
         translation_key="energy_since_last_log",
         native_unit_of_measurement="kWh",
+        state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.ENERGY,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda h: None,
