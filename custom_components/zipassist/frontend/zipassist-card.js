@@ -57,7 +57,7 @@
     var g = {};
     for (var i = 0; i < ids.length; i++) {
       var eid = ids[i], st = h.states[eid];
-      var devId = (st && st.attributes && st.attributes.device_id) || "";
+      var devId = ((h.entities && h.entities[eid]) || {}).device_id || "";
       var dn = (h.devices && h.devices[devId] && h.devices[devId].name) || "Unknown";
       if (!g[dn]) g[dn] = {};
       var uid = (st && st.attributes && st.attributes.unique_id) || "";
