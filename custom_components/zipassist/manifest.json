@@ -3,7 +3,7 @@
   "name": "ZipAssist CMMS",
   "codeowners": ["@Squazel"],
   "config_flow": true,
-  "dependencies": ["http"],
+  "dependencies": ["frontend", "http"],
   "documentation": "https://github.com/Squazel/homeassistant-zipassist",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Squazel/homeassistant-zipassist/issues",
