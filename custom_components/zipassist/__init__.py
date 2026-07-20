@@ -137,7 +137,7 @@ async def _async_register_frontend_card(hass: HomeAssistant) -> None:
         ])
 
         card_url = f"/{DOMAIN}/zipassist-card.js"
-        add_extra_js_url(hass, card_url)
+        add_extra_js_url(hass, card_url, es5=True)
 
         _LOGGER.debug("ZipAssist frontend card registered at %s", card_url)
     except Exception:
