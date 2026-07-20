@@ -3,5 +3,6 @@
   "homeassistant": "2023.1.0",
   "render_readme": true,
   "zip_release": false,
-  "filename": "zipassist"
+  "filename": "zipassist",
+  "icon": "logo.png"
 }
