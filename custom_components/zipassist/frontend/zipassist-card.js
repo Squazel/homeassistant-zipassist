@@ -896,7 +896,7 @@
       type: CARD_TYPE,
       name: CARD_NAME,
       description: CARD_DESCRIPTION,
-      preview: true,
+      preview: false,  // static picker entry; do not live-render
       documentationURL: DOC_URL,
     });
   }

@@ -69,6 +69,7 @@ def test_card_js_exists_and_defines_element() -> None:
     assert "getConfigForm" in text
     assert "getStubConfig" in text
     assert "documentationURL" in text
+    assert "preview: false" in text
     # HTML escaping must encode entities
     assert "&" + "amp;" in text
     assert "&" + "lt;" in text
