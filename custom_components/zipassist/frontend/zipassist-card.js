@@ -363,47 +363,117 @@
     return i > 0 ? entityId.slice(0, i) : "";
   }
 
-  function extractKey(uniqueId, entityId) {
-    if (uniqueId) {
-      // zipassist_<hydrotapId>_<key> — hydrotap id may be UUID or other id
-      const m = String(uniqueId).match(/^zipassist_.+?_(.+)$/);
-      if (m) return m[1];
-    }
-    return entityId;
+  // Section keys (entity description keys) vs entity_id object_id suffixes.
+  // HA frontend often omits unique_id on hass.entities, and entity_ids are
+  // built from translated names, not always the description key.
+  const KEY_ALIASES = {
+    boiling_temp: ["boiling_temperature", "boiling_temp"],
+    chilled_temp: ["chilled_temperature", "chilled_temp"],
+    boiling_duration: ["boiling_dispense_duration", "boiling_duration"],
+    chilled_duration: ["chilled_dispense_duration", "chilled_duration"],
+    sparkling_duration: ["sparkling_dispense_duration", "sparkling_duration"],
+    ambient_duration: ["ambient_dispense_duration", "ambient_duration"],
+    energy_total: ["total_energy", "energy_total"],
+    energy_since_last_log: ["energy_since_last_log"],
+    internal_filter_litres: ["internal_filter_litres_limit", "internal_filter_litres"],
+    internal_filter_days: ["internal_filter_days_limit", "internal_filter_days"],
+    external_filter_litres: ["external_filter_litres_limit", "external_filter_litres"],
+    external_filter_days: ["external_filter_days_limit", "external_filter_days"],
+    litres_filtered_internal: ["internal_litres_filtered", "litres_filtered_internal"],
+    litres_filtered_external: ["external_litres_filtered", "litres_filtered_external"],
+    days_filtered_internal: ["internal_days_filtered", "days_filtered_internal"],
+    days_filtered_external: ["external_days_filtered", "days_filtered_external"],
+    sync_period: ["sync_period", "sync_period_minutes"],
+    system_fault: ["system_fault"],
+    system_fault_details: ["system_fault_details"],
+  };
+
+  function objectId(entityId) {
+    const i = String(entityId).indexOf(".");
+    return i >= 0 ? String(entityId).slice(i + 1) : String(entityId);
   }
 
-  function buildEntityMap(hass, deviceId) {
-    const ents = {};
+  function extractKeyFromUniqueId(uniqueId) {
+    if (!uniqueId) return null;
+    const m = String(uniqueId).match(/^zipassist_.+?_(.+)$/);
+    return m ? m[1] : null;
+  }
+
+  function suffixesForKey(key) {
+    const aliases = KEY_ALIASES[key];
+    return aliases && aliases.length ? aliases.slice() : [key];
+  }
+
+  function entityMatchesKey(entityId, key) {
+    const oid = objectId(entityId);
+    const suffixes = suffixesForKey(key);
+    for (let i = 0; i < suffixes.length; i++) {
+      const s = suffixes[i];
+      if (oid === s || oid.endsWith("_" + s)) return true;
+    }
+    return false;
+  }
+
+  function collectDeviceEntityIds(hass, deviceId) {
+    const out = [];
     const entities = (hass && hass.entities) || {};
     const eids = Object.keys(entities);
     for (let i = 0; i < eids.length; i++) {
       const eid = eids[i];
       const ereg = entities[eid];
       if (!ereg) continue;
-      // Match by device_id when available
       if (deviceId && ereg.device_id && ereg.device_id !== deviceId) continue;
       const platform = ereg.platform || ereg.integration || "";
       const uid = ereg.unique_id || "";
+      const onDevice = !!(deviceId && ereg.device_id === deviceId);
       const looksOurs =
         platform === "zipassist" ||
         String(uid).indexOf("zipassist_") === 0 ||
-        // Fallback: entity_id contains zipassist (rare) or device matched
-        (deviceId && ereg.device_id === deviceId);
-      if (!looksOurs && platform && platform !== "zipassist") continue;
-      if (!looksOurs && !deviceId) continue;
-      if (deviceId && ereg.device_id && ereg.device_id !== deviceId) continue;
-      // If we only have device match without platform, still accept
-      if (!looksOurs && !(deviceId && ereg.device_id === deviceId)) continue;
-      const key = extractKey(uid, eid);
-      ents[key] = eid;
+        onDevice;
+      if (!looksOurs) continue;
+      out.push(eid);
     }
-    // Second pass: if empty, take any entity on this device regardless of platform
-    if (deviceId && Object.keys(ents).length === 0) {
+    // Fallback: any entity on device
+    if (deviceId && out.length === 0) {
       for (let j = 0; j < eids.length; j++) {
         const eid2 = eids[j];
         const ereg2 = entities[eid2];
-        if (ereg2 && ereg2.device_id === deviceId) {
-          ents[extractKey(ereg2.unique_id || "", eid2)] = eid2;
+        if (ereg2 && ereg2.device_id === deviceId) out.push(eid2);
+      }
+    }
+    return out;
+  }
+
+  function buildEntityMap(hass, deviceId) {
+    const ents = {};
+    const eids = collectDeviceEntityIds(hass, deviceId);
+    const entities = (hass && hass.entities) || {};
+
+    // 1) Prefer unique_id suffix when HA exposes it
+    for (let i = 0; i < eids.length; i++) {
+      const eid = eids[i];
+      const ereg = entities[eid] || {};
+      const k = extractKeyFromUniqueId(ereg.unique_id || "");
+      if (k) ents[k] = eid;
+    }
+
+    // 2) Match section keys / aliases against entity_id object_id suffixes.
+    // Collect all known keys from SECTIONS.
+    const known = {};
+    for (let si = 0; si < SECTIONS.length; si++) {
+      const list = SECTIONS[si].e || [];
+      for (let ki = 0; ki < list.length; ki++) {
+        known[list[ki][0]] = true;
+      }
+    }
+    const keys = Object.keys(known);
+    for (let k = 0; k < keys.length; k++) {
+      const key = keys[k];
+      if (ents[key]) continue;
+      for (let e = 0; e < eids.length; e++) {
+        if (entityMatchesKey(eids[e], key)) {
+          ents[key] = eids[e];
+          break;
         }
       }
     }

@@ -19,7 +19,7 @@ from custom_components.zipassist.const import DOMAIN
 def test_integration_version_reads_manifest() -> None:
     """Version helper returns the manifest version string."""
     version = _integration_version()
-    assert version == "0.1.5"
+    assert version == "0.1.6"
 
 
 @pytest.mark.asyncio
@@ -37,7 +37,7 @@ async def test_register_frontend_card_idempotent() -> None:
 
     assert hass.data[DOMAIN][DATA_FRONTEND_REGISTERED] is True
     setup_fe.assert_awaited_once()
-    assert setup_fe.await_args.args[1] == "0.1.5"
+    assert setup_fe.await_args.args[1] == "0.1.6"
 
 
 @pytest.mark.asyncio
@@ -55,13 +55,13 @@ async def test_async_setup_frontend_registers_static_path() -> None:
     with patch.object(fr, "async_register_static_path", register), patch.object(
         fr, "async_init_lovelace_resource", AsyncMock()
     ) as init_res:
-        await fr.async_setup_frontend(hass, "0.1.5")
+        await fr.async_setup_frontend(hass, "0.1.6")
 
     register.assert_awaited_once()
     assert register.await_args.args[1] == "/zipassist"
     init_res.assert_awaited_once()
     assert init_res.await_args.args[1] == "/zipassist/zipassist-card.js"
-    assert init_res.await_args.args[2] == "0.1.5"
+    assert init_res.await_args.args[2] == "0.1.6"
 
 
 def test_card_js_exists_and_defines_element() -> None:
@@ -83,6 +83,8 @@ def test_card_js_exists_and_defines_element() -> None:
     assert "documentationURL" in text
     assert "preview: false" in text
     assert "must be sync and never throw" in text
+    assert "KEY_ALIASES" in text
+    assert "entityMatchesKey" in text
     assert "&" + "amp;" in text
     assert "&" + "lt;" in text
     assert "&" + "gt;" in text

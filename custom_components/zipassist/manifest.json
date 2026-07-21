@@ -14,5 +14,5 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/Squazel/homeassistant-zipassist/issues",
   "requirements": [],
-  "version": "0.1.5"
+  "version": "0.1.6"
 }
