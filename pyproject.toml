@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zipassist"
-version = "0.1.4"
+version = "0.1.5"
 description = "Home Assistant integration for ZipAssist CMMS (Zip Industries HydroTaps)"
 readme = "README.md"
 license = "MIT"

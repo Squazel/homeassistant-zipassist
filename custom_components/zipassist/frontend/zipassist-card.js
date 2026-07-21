@@ -375,17 +375,37 @@
   function buildEntityMap(hass, deviceId) {
     const ents = {};
     const entities = (hass && hass.entities) || {};
-    for (const eid of Object.keys(entities)) {
+    const eids = Object.keys(entities);
+    for (let i = 0; i < eids.length; i++) {
+      const eid = eids[i];
       const ereg = entities[eid];
-      if (!ereg || ereg.device_id !== deviceId) continue;
-      const platform = ereg.platform || ereg.integration;
-      if (platform && platform !== "zipassist") continue;
-      if (!platform) {
-        const uid = ereg.unique_id || "";
-        if (!String(uid).startsWith("zipassist_")) continue;
-      }
-      const key = extractKey(ereg.unique_id, eid);
+      if (!ereg) continue;
+      // Match by device_id when available
+      if (deviceId && ereg.device_id && ereg.device_id !== deviceId) continue;
+      const platform = ereg.platform || ereg.integration || "";
+      const uid = ereg.unique_id || "";
+      const looksOurs =
+        platform === "zipassist" ||
+        String(uid).indexOf("zipassist_") === 0 ||
+        // Fallback: entity_id contains zipassist (rare) or device matched
+        (deviceId && ereg.device_id === deviceId);
+      if (!looksOurs && platform && platform !== "zipassist") continue;
+      if (!looksOurs && !deviceId) continue;
+      if (deviceId && ereg.device_id && ereg.device_id !== deviceId) continue;
+      // If we only have device match without platform, still accept
+      if (!looksOurs && !(deviceId && ereg.device_id === deviceId)) continue;
+      const key = extractKey(uid, eid);
       ents[key] = eid;
+    }
+    // Second pass: if empty, take any entity on this device regardless of platform
+    if (deviceId && Object.keys(ents).length === 0) {
+      for (let j = 0; j < eids.length; j++) {
+        const eid2 = eids[j];
+        const ereg2 = entities[eid2];
+        if (ereg2 && ereg2.device_id === deviceId) {
+          ents[extractKey(ereg2.unique_id || "", eid2)] = eid2;
+        }
+      }
     }
     return ents;
   }
@@ -770,8 +790,19 @@
         }
       }
 
+      // Auto-pick first ZipAssist device when config omitted device
       if (!deviceId) {
-        this._renderEmpty("Select a HydroTap device in the card configuration.");
+        deviceId = findZipAssistDeviceId(hass);
+        if (deviceId && !config.device) {
+          // Persist into local config so subsequent renders are stable
+          this._config = Object.assign({}, config, { device: deviceId });
+        }
+      }
+
+      if (!deviceId) {
+        this._renderEmpty(
+          "No HydroTap device found. Open the card editor and select a ZipAssist device."
+        );
         return;
       }
 
@@ -781,7 +812,9 @@
       this._lastSignature = sig;
 
       if (!Object.keys(ents).length) {
-        this._renderEmpty("No ZipAssist entities found for this device.");
+        this._renderEmpty(
+          "No entities found for this device yet. Check the integration loaded entities, then refresh the dashboard."
+        );
         return;
       }
 

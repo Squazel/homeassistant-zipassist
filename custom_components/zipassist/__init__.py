@@ -93,6 +93,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register services (idempotent)
     await async_setup_services(hass)
 
+    # Ensure frontend/card registration (covers late entry setup / reloads)
+    await _async_register_frontend_card(hass)
+
     # Listen for coordinator updates to detect auth failures
     @callback
     def _handle_coordinator_update() -> None:

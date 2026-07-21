@@ -209,8 +209,9 @@ def _make_module(**attrs):
 
 # Register all HA stubs in sys.modules
 sys.modules["homeassistant"] = MagicMock()
-sys.modules["homeassistant.core"] = _make_module(HomeAssistant=MagicMock)
+sys.modules["homeassistant.core"] = _make_module(HomeAssistant=MagicMock, CoreState=_make_module(running="running", not_running="not_running"), Event=object)
 sys.modules["homeassistant.const"] = _make_module(
+    EVENT_HOMEASSISTANT_STARTED="homeassistant_started",
     UnitOfVolume=_make_module(LITERS="L"),
     UnitOfTemperature=_make_module(CELSIUS="°C"),
     CONF_EMAIL="email",
