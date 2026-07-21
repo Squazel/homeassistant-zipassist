@@ -1,7 +1,5 @@
 {
   "name": "ZipAssist CMMS Integration",
-  "homeassistant": "2023.1.0",
-  "render_readme": true,
-  "zip_release": false,
-  "filename": "zipassist"
+  "homeassistant": "2024.8.0",
+  "render_readme": true
 }

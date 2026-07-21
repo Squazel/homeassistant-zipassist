@@ -37,6 +37,7 @@ class TestServices:
     async def test_setup_and_unload_services(self) -> None:
         """Test services are registered and unregistered."""
         hass = MagicMock()
+        hass.data = {}
         hass.services = MagicMock()
         hass.services.async_register = MagicMock()
         hass.services.has_service = MagicMock(return_value=True)
@@ -51,6 +52,10 @@ class TestServices:
             for call in hass.services.async_register.call_args_list
         }
         assert registered == {SERVICE_CLEAR_FAULT, SERVICE_SET_TEMPERATURE}
+
+        # Second setup is a no-op (idempotent)
+        await async_setup_services(hass)
+        assert hass.services.async_register.call_count == 2
 
         # Unload
         async_unload_services(hass)

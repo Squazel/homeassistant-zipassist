@@ -10,7 +10,9 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 try:
     from homeassistant.components.frontend import add_extra_js_url
@@ -65,24 +67,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up ZipAssist CMMS from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
+    session = async_get_clientsession(hass)
     client = ZipAssistClient(
         email=entry.data["email"],
         password=entry.data["password"],
         base_url=entry.data.get("base_url", DEFAULT_BASE_URL),
+        session=session,
     )
 
-    if not await client.authenticate():
-        _LOGGER.error("Failed to authenticate with ZipAssist")
-        return False
+    try:
+        authenticated = await client.authenticate()
+    except Exception as err:
+        # Transient network/API failures should retry.
+        raise ConfigEntryNotReady(f"Error connecting to ZipAssist: {err}") from err
+
+    if not authenticated:
+        raise ConfigEntryAuthFailed("Invalid ZipAssist credentials")
 
     coordinator = ZipAssistCoordinator(hass, client)
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except ConfigEntryAuthFailed:
+        raise
+    except Exception as err:
+        # First refresh failures are usually connectivity; retry later.
+        raise ConfigEntryNotReady(str(err)) from err
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Register services (only once, not per entry)
+    # Register services (idempotent)
     await async_setup_services(hass)
 
     # Listen for coordinator updates to detect auth failures
@@ -90,7 +105,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     def _handle_coordinator_update() -> None:
         """Check for auth failures and trigger reauth if needed."""
         if not coordinator.last_update_success:
-            # Check if the failure was due to auth
             last_ex = coordinator.last_exception
             if last_ex is not None:
                 exc_str = str(last_ex).lower()
@@ -103,7 +117,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                         hass.config_entries.flow.async_init(
                             DOMAIN,
                             context={"source": "reauth", "entry_id": entry.entry_id},
-                            data=entry,
+                            data=dict(entry.data),
                         )
                     )
 
@@ -120,6 +134,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
         if coordinator:
+            # Shared HA session: close() is a no-op when session is not owned.
             await coordinator.client.close()
         # Only unload services if no more config entries remain.
         # Keep DATA_FRONTEND_REGISTERED so the card stays registered for the
@@ -169,10 +184,8 @@ async def _async_register_frontend_card(hass: HomeAssistant) -> None:
 
         version = await hass.async_add_executor_job(_integration_version)
         card_url = f"/{DOMAIN}/zipassist-card.js?v={version}"
-        # Register as both classic script and module so the IIFE always runs.
-        # Classic (es5=True) is the reliable path for non-module card bundles;
-        # module covers modern frontend resource loading.
-        add_extra_js_url(hass, card_url, es5=True)
+        # Module URL only (community standard). es5=True is for legacy classic
+        # scripts and is incorrect for modern IIFE/module card bundles.
         add_extra_js_url(hass, card_url, es5=False)
 
         domain_data[DATA_FRONTEND_REGISTERED] = True

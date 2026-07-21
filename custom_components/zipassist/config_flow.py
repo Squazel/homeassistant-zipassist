@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import ZipAssistClient
 from .const import CONF_BASE_URL, DEFAULT_BASE_URL, DOMAIN
@@ -47,15 +49,16 @@ class ZipAssistConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
             await self.async_set_unique_id(f"zipassist_{email}")
             self._abort_if_unique_id_configured()
 
+            session = async_get_clientsession(self.hass)
             client = ZipAssistClient(
                 email=email,
                 password=user_input[CONF_PASSWORD],
                 base_url=user_input.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                session=session,
             )
 
             try:
                 if await client.authenticate():
-                    await client.close()
                     return self.async_create_entry(
                         title=f"ZipAssist ({email})",
                         data=user_input,
@@ -74,35 +77,35 @@ class ZipAssistConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
         )
 
     async def async_step_reauth(
-        self, user_input: dict[str, Any] | None = None
+        self, entry_data: Mapping[str, Any]
     ) -> ConfigFlowResult:
         """Handle reauthentication when credentials change."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Dialog that informs the user that reauth is required."""
         errors: dict[str, str] = {}
 
-        reauth_entry = self.hass.config_entries.async_get_entry(
-            self.context["entry_id"]
-        )
-        email = reauth_entry.data[CONF_EMAIL] if reauth_entry else ""
+        reauth_entry = self._get_reauth_entry()
+        email = reauth_entry.data[CONF_EMAIL]
 
         if user_input is not None:
+            session = async_get_clientsession(self.hass)
             client = ZipAssistClient(
                 email=email,
                 password=user_input[CONF_PASSWORD],
                 base_url=user_input.get(CONF_BASE_URL, DEFAULT_BASE_URL),
+                session=session,
             )
 
             try:
                 if await client.authenticate():
-                    await client.close()
-                    # Update the existing entry with new credentials
-                    new_data = {**reauth_entry.data, **user_input}
-                    self.hass.config_entries.async_update_entry(
-                        reauth_entry, data=new_data
+                    return self.async_update_reload_and_abort(
+                        reauth_entry,
+                        data_updates=user_input,
                     )
-                    await self.hass.config_entries.async_reload(
-                        reauth_entry.entry_id
-                    )
-                    return self.async_abort(reason="reauth_successful")
                 errors["base"] = "invalid_auth"
             except Exception:
                 _LOGGER.exception("Reauth connection test failed")
@@ -111,7 +114,7 @@ class ZipAssistConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
                 await client.close()
 
         return self.async_show_form(
-            step_id="reauth",
+            step_id="reauth_confirm",
             data_schema=REAUTH_DATA_SCHEMA,
             description_placeholders={"email": email},
             errors=errors,

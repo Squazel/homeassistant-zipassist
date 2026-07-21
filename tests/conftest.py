@@ -226,7 +226,8 @@ class _StubConfigFlow:
             setattr(cls, k, v)
 
     def __init__(self, *args, **kwargs):
-        pass
+        self.hass = MagicMock()
+        self.context = {}
 
     async def async_set_unique_id(self, unique_id: str) -> None:
         """Stub."""
@@ -236,13 +237,28 @@ class _StubConfigFlow:
         """Stub."""
         pass
 
-    async def async_create_entry(self, **kwargs):
-        """Stub."""
-        pass
+    def _get_reauth_entry(self):
+        """Stub reauth entry lookup."""
+        entry = MagicMock()
+        entry.data = {"email": "test@example.com", "password": "old"}
+        entry.entry_id = "test-entry"
+        return entry
 
-    async def async_show_form(self, **kwargs):
+    def async_update_reload_and_abort(self, entry, data_updates=None, **kwargs):
+        """Stub modern reauth completion helper."""
+        return {"type": "abort", "reason": "reauth_successful"}
+
+    def async_create_entry(self, **kwargs):
         """Stub."""
-        pass
+        return {"type": "create_entry", **kwargs}
+
+    def async_show_form(self, **kwargs):
+        """Stub."""
+        return {"type": "form", **kwargs}
+
+    def async_abort(self, **kwargs):
+        """Stub."""
+        return {"type": "abort", **kwargs}
 
 
 sys.modules["homeassistant.config_entries"] = _make_module(
@@ -254,6 +270,14 @@ sys.modules["homeassistant.helpers.entity_platform"] = _make_module(
 )
 sys.modules["homeassistant.helpers.config_validation"] = _make_module(
     config_entry_only_config_schema=lambda d: {},
+)
+sys.modules["homeassistant.helpers.aiohttp_client"] = _make_module(
+    async_get_clientsession=lambda hass: MagicMock(),
+)
+sys.modules["homeassistant.exceptions"] = _make_module(
+    ConfigEntryAuthFailed=type("ConfigEntryAuthFailed", (Exception,), {}),
+    ConfigEntryNotReady=type("ConfigEntryNotReady", (Exception,), {}),
+    HomeAssistantError=type("HomeAssistantError", (Exception,), {}),
 )
 sys.modules["homeassistant.helpers.update_coordinator"] = _make_module(
     CoordinatorEntity=_StubCoordinatorEntity,

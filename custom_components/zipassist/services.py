@@ -49,7 +49,12 @@ def _find_coordinator_for_device(
 
 
 async def async_setup_services(hass: HomeAssistant) -> None:
-    """Register ZipAssist services."""
+    """Register ZipAssist services (idempotent)."""
+    # Prefer an explicit domain data flag so unit tests / MagicMocks that
+    # make has_service truthy by default do not skip registration incorrectly.
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if domain_data.get("services_registered"):
+        return
 
     async def _handle_clear_fault(call: ServiceCall) -> None:
         """Handle the clear_system_fault service call."""
@@ -112,6 +117,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         _handle_set_temperature,
         schema=SET_TEMPERATURE_SCHEMA,
     )
+    domain_data["services_registered"] = True
 
 
 def async_unload_services(hass: HomeAssistant) -> None:
@@ -119,3 +125,5 @@ def async_unload_services(hass: HomeAssistant) -> None:
     for service in (SERVICE_CLEAR_FAULT, SERVICE_SET_TEMPERATURE):
         if hass.services.has_service(DOMAIN, service):
             hass.services.async_remove(DOMAIN, service)
+    if DOMAIN in hass.data:
+        hass.data[DOMAIN].pop("services_registered", None)

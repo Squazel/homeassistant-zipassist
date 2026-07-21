@@ -19,7 +19,7 @@ from custom_components.zipassist.const import DOMAIN
 def test_integration_version_reads_manifest() -> None:
     """Version helper returns the manifest version string."""
     version = _integration_version()
-    assert version == "0.1.2"
+    assert version == "0.1.3"
 
 
 @pytest.mark.asyncio
@@ -46,11 +46,10 @@ async def test_register_frontend_card_idempotent() -> None:
 
     assert hass.data[DOMAIN][DATA_FRONTEND_REGISTERED] is True
     hass.http.async_register_static_paths.assert_awaited_once()
-    assert add_js.call_count == 2
-    es5_flags = sorted(c.kwargs.get("es5") for c in add_js.call_args_list)
-    assert es5_flags == [False, True]
-    for c in add_js.call_args_list:
-        assert c.args[1].startswith(f"/{DOMAIN}/zipassist-card.js?v=")
+    assert add_js.call_count == 1
+    url = add_js.call_args.args[1]
+    assert url.startswith(f"/{DOMAIN}/zipassist-card.js?v=")
+    assert add_js.call_args.kwargs.get("es5") is False
 
 
 def test_card_js_exists_and_defines_element() -> None:
