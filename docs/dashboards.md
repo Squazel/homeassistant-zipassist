@@ -39,7 +39,7 @@ issue, not a bad card config.
 
    **Settings → Dashboards → ⋮ → Resources → Add resource**
 
-   - URL: `/zipassist/zipassist-card.js?v=0.1.10` (match current version)
+   - URL: `/zipassist/zipassist-card.js?v=0.1.11` (match current version)
    - Type: **JavaScript module**
 
 4. YAML mode: add the same URL under `lovelace.resources` with `type: module`.

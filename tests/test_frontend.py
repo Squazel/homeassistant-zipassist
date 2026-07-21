@@ -166,6 +166,10 @@ def test_card_js_exists_and_defines_element() -> None:
     assert "KEY_ALIASES" in text
     assert "entityMatchesKey" in text
     assert "defaultCollapsed" in text
+    assert "energy_daily_mon_on_active" in text
+    assert "energy_monday_on_active" in text
+    assert "TIMER_MODES" in text
+    assert 'label: "Daily"' in text
     assert "&" + "amp;" in text
     assert "&" + "lt;" in text
     assert "&" + "gt;" in text

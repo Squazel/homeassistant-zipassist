@@ -550,6 +550,148 @@
     sync_period: ["sync_period", "sync_period_minutes"],
     system_fault: ["system_fault"],
     system_fault_details: ["system_fault_details"],
+    // Daily timers: description keys use mon/tue/… but entity_ids follow
+    // translated names ("Energy Monday On Active" → energy_monday_on_active).
+    energy_daily_mon_on_active: [
+      "energy_daily_mon_on_active",
+      "energy_monday_on_active",
+      "monday_on_active",
+    ],
+    energy_daily_mon_off_active: [
+      "energy_daily_mon_off_active",
+      "energy_monday_off_active",
+      "monday_off_active",
+    ],
+    energy_daily_mon_on_time: [
+      "energy_daily_mon_on_time",
+      "energy_monday_on_time",
+      "monday_on_time",
+    ],
+    energy_daily_mon_off_time: [
+      "energy_daily_mon_off_time",
+      "energy_monday_off_time",
+      "monday_off_time",
+    ],
+    energy_daily_tue_on_active: [
+      "energy_daily_tue_on_active",
+      "energy_tuesday_on_active",
+      "tuesday_on_active",
+    ],
+    energy_daily_tue_off_active: [
+      "energy_daily_tue_off_active",
+      "energy_tuesday_off_active",
+      "tuesday_off_active",
+    ],
+    energy_daily_tue_on_time: [
+      "energy_daily_tue_on_time",
+      "energy_tuesday_on_time",
+      "tuesday_on_time",
+    ],
+    energy_daily_tue_off_time: [
+      "energy_daily_tue_off_time",
+      "energy_tuesday_off_time",
+      "tuesday_off_time",
+    ],
+    energy_daily_wed_on_active: [
+      "energy_daily_wed_on_active",
+      "energy_wednesday_on_active",
+      "wednesday_on_active",
+    ],
+    energy_daily_wed_off_active: [
+      "energy_daily_wed_off_active",
+      "energy_wednesday_off_active",
+      "wednesday_off_active",
+    ],
+    energy_daily_wed_on_time: [
+      "energy_daily_wed_on_time",
+      "energy_wednesday_on_time",
+      "wednesday_on_time",
+    ],
+    energy_daily_wed_off_time: [
+      "energy_daily_wed_off_time",
+      "energy_wednesday_off_time",
+      "wednesday_off_time",
+    ],
+    energy_daily_thu_on_active: [
+      "energy_daily_thu_on_active",
+      "energy_thursday_on_active",
+      "thursday_on_active",
+    ],
+    energy_daily_thu_off_active: [
+      "energy_daily_thu_off_active",
+      "energy_thursday_off_active",
+      "thursday_off_active",
+    ],
+    energy_daily_thu_on_time: [
+      "energy_daily_thu_on_time",
+      "energy_thursday_on_time",
+      "thursday_on_time",
+    ],
+    energy_daily_thu_off_time: [
+      "energy_daily_thu_off_time",
+      "energy_thursday_off_time",
+      "thursday_off_time",
+    ],
+    energy_daily_fri_on_active: [
+      "energy_daily_fri_on_active",
+      "energy_friday_on_active",
+      "friday_on_active",
+    ],
+    energy_daily_fri_off_active: [
+      "energy_daily_fri_off_active",
+      "energy_friday_off_active",
+      "friday_off_active",
+    ],
+    energy_daily_fri_on_time: [
+      "energy_daily_fri_on_time",
+      "energy_friday_on_time",
+      "friday_on_time",
+    ],
+    energy_daily_fri_off_time: [
+      "energy_daily_fri_off_time",
+      "energy_friday_off_time",
+      "friday_off_time",
+    ],
+    energy_daily_sat_on_active: [
+      "energy_daily_sat_on_active",
+      "energy_saturday_on_active",
+      "saturday_on_active",
+    ],
+    energy_daily_sat_off_active: [
+      "energy_daily_sat_off_active",
+      "energy_saturday_off_active",
+      "saturday_off_active",
+    ],
+    energy_daily_sat_on_time: [
+      "energy_daily_sat_on_time",
+      "energy_saturday_on_time",
+      "saturday_on_time",
+    ],
+    energy_daily_sat_off_time: [
+      "energy_daily_sat_off_time",
+      "energy_saturday_off_time",
+      "saturday_off_time",
+    ],
+    energy_daily_sun_on_active: [
+      "energy_daily_sun_on_active",
+      "energy_sunday_on_active",
+      "sunday_on_active",
+    ],
+    energy_daily_sun_off_active: [
+      "energy_daily_sun_off_active",
+      "energy_sunday_off_active",
+      "sunday_off_active",
+    ],
+    energy_daily_sun_on_time: [
+      "energy_daily_sun_on_time",
+      "energy_sunday_on_time",
+      "sunday_on_time",
+    ],
+    energy_daily_sun_off_time: [
+      "energy_daily_sun_off_time",
+      "energy_sunday_off_time",
+      "sunday_off_time",
+    ],
   };
 
   function objectId(entityId) {
@@ -559,7 +701,59 @@
 
   function extractKeyFromUniqueId(uniqueId) {
     if (!uniqueId) return null;
-    const m = String(uniqueId).match(/^zipassist_.+?_(.+)$/);
+    // unique_id = zipassist_{hydrotapId}_{description.key}
+    // Prefer known description-key suffixes so hydrotapIds with underscores
+    // (or UUIDs) do not truncate daily keys like energy_daily_mon_on_active.
+    const s = String(uniqueId);
+    if (s.indexOf("zipassist_") !== 0) return null;
+    const rest = s.slice("zipassist_".length);
+    const knownSuffixes = Object.keys(KEY_ALIASES).concat([
+      "energy_mode",
+      "energy_everyday_on_active",
+      "energy_everyday_off_active",
+      "energy_everyday_on_time",
+      "energy_everyday_off_time",
+      "energy_weekday_on_active",
+      "energy_weekday_off_active",
+      "energy_weekday_on_time",
+      "energy_weekday_off_time",
+      "energy_weekend_on_active",
+      "energy_weekend_off_active",
+      "energy_weekend_on_time",
+      "energy_weekend_off_time",
+      "safety_lock",
+      "hot_isolation",
+      "sleep_mode",
+      "status",
+      "serial_number",
+      "firmware_version",
+      "last_sync",
+      "wifi_signal_strength",
+      "sleep_mode_status",
+      "filter_litres_remaining",
+      "filter_days_remaining",
+      "filter_estimated_days",
+      "average_daily_usage",
+      "peak_hourly_usage",
+      "boiling_temp",
+      "chilled_temp",
+      "boiling_duration",
+      "chilled_duration",
+      "sparkling_duration",
+      "ambient_duration",
+      "sync_period",
+      "system_fault",
+      "system_fault_details",
+    ]);
+    // Longest match first so energy_daily_mon_on_active wins over mon_on_active.
+    knownSuffixes.sort(function (a, b) {
+      return b.length - a.length;
+    });
+    for (let i = 0; i < knownSuffixes.length; i++) {
+      const suf = knownSuffixes[i];
+      if (rest === suf || rest.endsWith("_" + suf)) return suf;
+    }
+    const m = rest.match(/^.+?_(.+)$/);
     return m ? m[1] : null;
   }
 
@@ -1184,39 +1378,75 @@
       return html;
     }
 
+    _modeHasEntities(mode, ents, hass) {
+      const groups = mode.groups || [];
+      for (let gi = 0; gi < groups.length; gi++) {
+        const rows = groups[gi].rows || [];
+        for (let ri = 0; ri < rows.length; ri++) {
+          const eid = ents[rows[ri].key];
+          if (eid && hass.states[eid]) return true;
+        }
+      }
+      return false;
+    }
+
     _renderTimersPanel(ents, hass, deviceId) {
       const energyModeEid = ents["energy_mode"];
       let hasAnyTimer = false;
       for (let mi = 0; mi < TIMER_MODES.length; mi++) {
-        const groups = TIMER_MODES[mi].groups || [];
-        for (let gi = 0; gi < groups.length; gi++) {
-          const rows = groups[gi].rows || [];
-          for (let ri = 0; ri < rows.length; ri++) {
-            if (ents[rows[ri].key] && hass.states[ents[rows[ri].key]]) {
-              hasAnyTimer = true;
-            timerSec = SECTIONS.find(function (s) {
-        return s.type === "timers";
-      });
-      const collapsed = this._sectionCollapsed(ck, timerSec || { defaultCollapsed: true })
-            }
-          }
-          if (hasAnyTimer) break;
+        if (this._modeHasEntities(TIMER_MODES[mi], ents, hass)) {
+          hasAnyTimer = true;
+          break;
         }
-        if (hasAnyTimer) break;
       }
       if (!hasAnyTimer && !energyModeEid) return "";
 
       const ck = deviceId + "||ON/OFF TIMERS";
-      const collapsed = !!this._collapsed[ck];
+      const timerSec = SECTIONS.find(function (s) {
+        return s.type === "timers";
+      });
+      const collapsed = this._sectionCollapsed(
+        ck,
+        timerSec || { defaultCollapsed: true }
+      );
+
+      const tabAvailable = [];
+      for (let tai = 0; tai < TIMER_MODES.length; tai++) {
+        tabAvailable.push(this._modeHasEntities(TIMER_MODES[tai], ents, hass));
+      }
 
       let activeTab = this._activeTimerTab;
-      if (!activeTab) {
+      if (!activeTab || !tabAvailable[Number(activeTab)]) {
+        activeTab = "";
         if (energyModeEid && hass.states[energyModeEid]) {
-          const currentMode = hass.states[energyModeEid].state;
+          const currentMode = String(hass.states[energyModeEid].state || "");
+          const modeNorm = currentMode.toLowerCase().replace(/[\s_-]/g, "");
           for (let ti = 0; ti < TIMER_MODES.length; ti++) {
-            if (currentMode === TIMER_MODES[ti].modeValue ||
-                currentMode === TIMER_MODES[ti].label) {
-              activeTab = String(ti);
+            if (!tabAvailable[ti] && hasAnyTimer) continue;
+            const mv = String(TIMER_MODES[ti].modeValue || "")
+              .toLowerCase()
+              .replace(/[\s_-]/g, "");
+            const lab = String(TIMER_MODES[ti].label || "")
+              .toLowerCase()
+              .replace(/[\s_/-]/g, "");
+            if (
+              currentMode === TIMER_MODES[ti].modeValue ||
+              currentMode === TIMER_MODES[ti].label ||
+              modeNorm === mv ||
+              modeNorm === lab ||
+              (modeNorm.indexOf("daily") >= 0 && mv === "daily")
+            ) {
+              if (tabAvailable[ti] || !hasAnyTimer) {
+                activeTab = String(ti);
+                break;
+              }
+            }
+          }
+        }
+        if (!activeTab) {
+          for (let fi = 0; fi < tabAvailable.length; fi++) {
+            if (tabAvailable[fi]) {
+              activeTab = String(fi);
               break;
             }
           }
@@ -1226,59 +1456,91 @@
 
       let html = '<div class="zip-section">';
       html += this._renderSectionBar("ON/OFF TIMERS", ck, collapsed);
-      html += '<div class="zip-section-body' + (collapsed ? " collapsed" : "") + '">';
+      html +=
+        '<div class="zip-section-body' +
+        (collapsed ? " collapsed" : "") +
+        '">';
       html += '<div class="timers-body">';
 
       if (energyModeEid && hass.states[energyModeEid]) {
         html += '<div class="timers-mode-select">';
-        html += '<label>Active Mode:</label>';
+        html += "<label>Active Mode:</label>";
         html += this._renderControl(energyModeEid, hass.states[energyModeEid]);
         html += "</div>";
       }
 
       html += '<div class="timers-tabs">';
       for (let tbi = 0; tbi < TIMER_MODES.length; tbi++) {
-        const isActive = (String(tbi) === activeTab);
+        const isActive = String(tbi) === activeTab;
         html +=
-          '<button type="button" class="timers-tab' + (isActive ? " active" : "") +
-          '" data-tab="' + tbi + '" role="tab" aria-selected="' + (isActive ? "true" : "false") + '">' +
-          esc(TIMER_MODES[tbi].label) + "</button>";
+          '<button type="button" class="timers-tab' +
+          (isActive ? " active" : "") +
+          '" data-tab="' +
+          tbi +
+          '" role="tab" aria-selected="' +
+          (isActive ? "true" : "false") +
+          '">' +
+          esc(TIMER_MODES[tbi].label) +
+          "</button>";
       }
       html += "</div>";
 
       for (let tci = 0; tci < TIMER_MODES.length; tci++) {
-        const isVisible = (String(tci) === activeTab);
-        html += '<div class="timers-tab-content' + (isVisible ? "" : " hidden") + '" role="tabpanel">';
+        const isVisible = String(tci) === activeTab;
+        html +=
+          '<div class="timers-tab-content' +
+          (isVisible ? "" : " hidden") +
+          '" role="tabpanel">';
 
         const modeGroups = TIMER_MODES[tci].groups || [];
+        let renderedRows = 0;
         for (let mgi = 0; mgi < modeGroups.length; mgi++) {
           const group = modeGroups[mgi];
-          if (modeGroups.length > 1) {
-            html += '<div class="timers-subgroup">';
-            html += '<div class="timers-subgroup-title">' + esc(group.label) + "</div>";
-          }
+          let groupHtml = "";
+          let groupRows = 0;
 
           for (let rowi = 0; rowi < group.rows.length; rowi++) {
             const row = group.rows[rowi];
             const eid = ents[row.key];
             if (!eid || !hass.states[eid]) continue;
             const st = hass.states[eid];
-            html += '<div class="zip-row">';
-            html +=
-              '<span class="zip-row-label" data-more-info="' + esc(eid) + '">' +
-              esc(row.label) + "</span>";
-            html += '<div class="zip-row-control">';
-            html += this._renderControl(eid, st);
-            html +=
+            groupHtml += '<div class="zip-row">';
+            groupHtml +=
+              '<span class="zip-row-label" data-more-info="' +
+              esc(eid) +
+              '">' +
+              esc(row.label) +
+              "</span>";
+            groupHtml += '<div class="zip-row-control">';
+            groupHtml += this._renderControl(eid, st);
+            groupHtml +=
               '<button type="button" class="zip-more-info" data-more-info="' +
-              esc(eid) + '" title="More info" aria-label="More info">' +
+              esc(eid) +
+              '" title="More info" aria-label="More info">' +
               '<ha-icon icon="mdi:information-outline"></ha-icon></button>';
-            html += "</div></div>";
+            groupHtml += "</div></div>";
+            groupRows++;
+            renderedRows++;
           }
 
+          if (!groupRows) continue;
+
           if (modeGroups.length > 1) {
+            html += '<div class="timers-subgroup">';
+            html +=
+              '<div class="timers-subgroup-title">' +
+              esc(group.label) +
+              "</div>";
+            html += groupHtml;
             html += "</div>";
+          } else {
+            html += groupHtml;
           }
+        }
+
+        if (!renderedRows) {
+          html +=
+            '<div class="no-data">No timer entities found for this mode.</div>';
         }
 
         html += "</div>";
