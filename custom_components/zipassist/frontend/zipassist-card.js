@@ -24,6 +24,8 @@
   // type: "timers" = special nested-tabs panel
   // type: "filters" = internal/external sub-group panel
 
+  // defaultCollapsed: settings panels start collapsed (device info stays open).
+  // User toggles persist in _collapsed for the card instance lifetime.
   const SECTIONS = [
     // 1. Device info (non-collapsible header block)
     {
@@ -45,10 +47,11 @@
         ["energy_since_last_log", "Energy Since Last Log"],
       ],
     },
-    // 2. Safety Settings
+    // 2. Safety Settings — open by default (common controls)
     {
       t: "SAFETY SETTINGS",
       type: "settings",
+      defaultCollapsed: false,
       e: [
         ["safety_lock", "Safety Lock Enabled"],
         ["hot_isolation", "Hot Isolation Enabled"],
@@ -58,12 +61,14 @@
     {
       t: "SYNC TIME",
       type: "settings",
+      defaultCollapsed: true,
       e: [["sync_period", "Sync Period"]],
     },
-    // 4. System Fault Alerts
+    // 4. System Fault Alerts — open by default so faults are visible
     {
       t: "SYSTEM FAULT ALERTS",
       type: "settings",
+      defaultCollapsed: false,
       e: [
         ["system_fault", "System Fault"],
         ["system_fault_details", "Fault Details"],
@@ -73,6 +78,7 @@
     {
       t: "FILTERS",
       type: "filters",
+      defaultCollapsed: true,
       e: [
         ["filter_litres_remaining", "Litres Remaining"],
         ["filter_days_remaining", "Days Remaining"],
@@ -87,6 +93,7 @@
     {
       t: "DISPENSE SETTINGS",
       type: "settings",
+      defaultCollapsed: true,
       e: [
         ["boiling_duration", "Boiling Duration"],
         ["chilled_duration", "Chilled Duration"],
@@ -98,6 +105,7 @@
     {
       t: "TEMPERATURE SETTINGS",
       type: "settings",
+      defaultCollapsed: true,
       e: [
         ["boiling_temp", "Boiling Temperature"],
         ["chilled_temp", "Chilled Temperature"],
@@ -107,12 +115,14 @@
     {
       t: "ON/OFF TIMERS",
       type: "timers",
+      defaultCollapsed: true,
       e: [], // handled specially
     },
     // 9. Sleep Mode
     {
       t: "SLEEP MODE",
       type: "settings",
+      defaultCollapsed: true,
       e: [["sleep_mode", "Sleep Mode"]],
     },
   ];
@@ -1068,6 +1078,16 @@
       return hasAny ? html : "";
     }
 
+    _sectionCollapsed(ck, sec) {
+      // Explicit user toggle wins; otherwise use section defaultCollapsed.
+      if (Object.prototype.hasOwnProperty.call(this._collapsed, ck)) {
+        return !!this._collapsed[ck];
+      }
+      return sec && sec.defaultCollapsed !== false && sec.defaultCollapsed !== undefined
+        ? !!sec.defaultCollapsed
+        : false;
+    }
+
     _renderSettingsPanel(sec, ents, hass, deviceId) {
       const avail = [];
       for (let ii = 0; ii < sec.e.length; ii++) {
@@ -1081,7 +1101,7 @@
       if (!avail.length) return "";
 
       const ck = deviceId + "||" + sec.t;
-      const collapsed = !!this._collapsed[ck];
+      const collapsed = this._sectionCollapsed(ck, sec);
 
       let html = '<div class="zip-section">';
       html += this._renderSectionBar(sec.t, ck, collapsed);
@@ -1116,7 +1136,7 @@
       if (!readouts.length && !internalLimits.length && !externalLimits.length) return "";
 
       const ck = deviceId + "||" + sec.t;
-      const collapsed = !!this._collapsed[ck];
+      const collapsed = this._sectionCollapsed(ck, sec);
 
       let html = '<div class="zip-section">';
       html += this._renderSectionBar(sec.t, ck, collapsed);
@@ -1174,7 +1194,10 @@
           for (let ri = 0; ri < rows.length; ri++) {
             if (ents[rows[ri].key] && hass.states[ents[rows[ri].key]]) {
               hasAnyTimer = true;
-              break;
+            timerSec = SECTIONS.find(function (s) {
+        return s.type === "timers";
+      });
+      const collapsed = this._sectionCollapsed(ck, timerSec || { defaultCollapsed: true })
             }
           }
           if (hasAnyTimer) break;
@@ -1369,5 +1392,26 @@
   }
   if (!updated) {
     window.customCards.push(cardInfo);
+  }
+
+  // If Lovelace painted "custom element doesn't exist" before this script finished
+  // loading (common when only add_extra_js_url is available and resources storage
+  // is broken), force a card rebuild once the element is defined.
+  try {
+    const rebuild = new Event("ll-rebuild", {
+      bubbles: true,
+      composed: true,
+    });
+    const ha =
+      document.querySelector("home-assistant") ||
+      document.querySelector("hc-main") ||
+      document.body;
+    if (ha && typeof ha.dispatchEvent === "function") {
+      ha.dispatchEvent(rebuild);
+    } else {
+      window.dispatchEvent(rebuild);
+    }
+  } catch (_e) {
+    /* never break card load */
   }
 })();

@@ -28,6 +28,29 @@ async def async_register_static_path(
         hass.http.register_static_path(url_path, path)
 
 
+def _is_unsupported_storage_version(err: BaseException) -> bool:
+    """True when HA cannot read lovelace_resources (store newer than core)."""
+    # Prefer the real HA exception when the installed core exposes a real type.
+    # (Some test stubs put a non-type mock on homeassistant.exceptions.)
+    try:
+        from homeassistant.exceptions import UnsupportedStorageVersionError as Exc
+    except ImportError:  # pragma: no cover - very old cores
+        Exc = None  # type: ignore[assignment,misc]
+    else:
+        if isinstance(Exc, type) and issubclass(Exc, BaseException):
+            if isinstance(err, Exc):
+                return True
+
+    # Message match covers renamed exceptions and stubbed HA packages.
+    msg = str(err).lower()
+    name = type(err).__name__.lower()
+    if "unsupportedstorageversion" in name:
+        return True
+    return "lovelace_resources" in msg and (
+        "unsupported" in msg or "newer than the max supported" in msg
+    )
+
+
 async def async_init_lovelace_resource(
     hass: HomeAssistant, url: str, version: str
 ) -> bool:
@@ -38,17 +61,16 @@ async def async_init_lovelace_resource(
     - storage mode: create/update lovelace resource (res_type=module)
 
     Returns True if a lovelace resource was created/updated.
+
+    Note: ``add_extra_js_url`` alone is enough for the card to load. Writing
+    the Lovelace resource collection is best-effort. If this HA core cannot
+    read ``lovelace_resources`` (storage version newer than the core supports
+    — typically a downgrade or partial restore), we skip storage writes and
+    rely on the extra JS URL. That is not a ZipAssist card syntax error.
     """
     url2 = f"{url}?v={version}"
-    resource_ok = False
-
-    try:
-        from homeassistant.components.frontend import add_extra_js_url
-
-        add_extra_js_url(hass, url2, es5=False)
-        _LOGGER.debug("Registered extra JS module: %s", url2)
-    except Exception:  # noqa: BLE001
-        _LOGGER.warning("add_extra_js_url failed for %s", url2, exc_info=True)
+    # Extra JS may already be registered by async_setup_frontend; keep idempotent.
+    _try_add_extra_js(hass, url2)
 
     try:
         lovelace = hass.data.get("lovelace")
@@ -100,13 +122,39 @@ async def async_init_lovelace_resource(
             return True
 
         _LOGGER.debug("Lovelace resources collection has no create/update API")
-    except Exception:  # noqa: BLE001
-        _LOGGER.warning(
-            "Lovelace resource registration failed (will retry if possible)",
-            exc_info=True,
-        )
+    except Exception as err:  # noqa: BLE001
+        if _is_unsupported_storage_version(err):
+            # Common after HA downgrade / restore of a newer .storage file.
+            # Card still loads via add_extra_js_url; do not spam a full traceback.
+            _LOGGER.warning(
+                "Skipping Lovelace resource write: this Home Assistant core "
+                "cannot read lovelace_resources storage (%s). The ZipAssist "
+                "card is still registered via frontend extra JS. Upgrade HA "
+                "to match the storage file, or restore a matching backup. "
+                "This is not a ZipAssist card syntax/logic error.",
+                err,
+            )
+        else:
+            _LOGGER.warning(
+                "Lovelace resource registration failed (card may still load "
+                "via extra JS)",
+                exc_info=True,
+            )
 
-    return resource_ok
+    return False
+
+
+def _try_add_extra_js(hass: HomeAssistant, url: str) -> bool:
+    """Register frontend extra module URL (best-effort)."""
+    try:
+        from homeassistant.components.frontend import add_extra_js_url
+
+        add_extra_js_url(hass, url, es5=False)
+        _LOGGER.debug("Registered extra JS module: %s", url)
+        return True
+    except Exception:  # noqa: BLE001
+        _LOGGER.warning("add_extra_js_url failed for %s", url, exc_info=True)
+        return False
 
 
 async def async_setup_frontend(hass: HomeAssistant, version: str) -> None:
@@ -117,25 +165,38 @@ async def async_setup_frontend(hass: HomeAssistant, version: str) -> None:
         _LOGGER.warning("ZipAssist card missing at %s", card_file)
         return
 
-    # Serve entire frontend directory under /zipassist/
+    url2 = f"{CARD_URL_PATH}?v={version}"
+
+    # Serve frontend directory under /zipassist/.
+    # cache_headers=False avoids sticky browser caches of older card builds when
+    # the ?v= query is stripped by proxies; version query still used for busting.
     await async_register_static_path(
-        hass, "/zipassist", str(frontend_dir), cache_headers=True
+        hass, "/zipassist", str(frontend_dir), cache_headers=False
     )
 
+    # Always register extra JS as early as possible so the dashboard does not
+    # race a late HOMEASSISTANT_STARTED listener. Lovelace resource write is
+    # separate and may fail on broken lovelace_resources storage.
+    _try_add_extra_js(hass, url2)
+
     async def _register_resource(_event: Event | None = None) -> None:
+        # Re-assert extra JS after start (frontend component fully up).
+        _try_add_extra_js(hass, url2)
         ok = await async_init_lovelace_resource(hass, CARD_URL_PATH, version)
         if ok:
             _LOGGER.info(
-                "ZipAssist card Lovelace resource ready at %s?v=%s",
-                CARD_URL_PATH,
-                version,
+                "ZipAssist card Lovelace resource ready at %s",
+                url2,
             )
         else:
             _LOGGER.info(
-                "ZipAssist card served at %s?v=%s (extra JS); "
-                "Lovelace resource pending or YAML mode",
-                CARD_URL_PATH,
-                version,
+                "ZipAssist card served at %s via frontend extra JS "
+                "(Lovelace resource not written — YAML mode, storage not "
+                "ready, or lovelace_resources version mismatch). If the card "
+                "shows 'custom element doesn't exist', hard-refresh once or "
+                "add a Lovelace resource manually: %s (type: module).",
+                url2,
+                url2,
             )
 
     # Lovelace storage is often not ready during early async_setup.
@@ -143,12 +204,5 @@ async def async_setup_frontend(hass: HomeAssistant, version: str) -> None:
         await _register_resource()
     else:
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _register_resource)
-        # Still register extra JS immediately when possible
-        try:
-            from homeassistant.components.frontend import add_extra_js_url
-
-            add_extra_js_url(hass, f"{CARD_URL_PATH}?v={version}", es5=False)
-        except Exception:  # noqa: BLE001
-            pass
 
     _LOGGER.info("ZipAssist card static path registered at %s", CARD_URL_PATH)

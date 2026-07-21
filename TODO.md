@@ -79,7 +79,7 @@ Ship standard Lovelace dashboards as part of the HACS package to mirror the ZipA
 ## Card styling (match official ZipAssist HydroTap page)
 
 **Status:** ✅ Complete — `zipassist-card.js` rewritten with official ZipAssist look.  
-**Version:** `manifest.json` bumped to `0.1.7` for cache bust.  
+**Version:** keep `manifest.json` / `pyproject.toml` in sync; bump both when changing the card JS (cache bust).  
 **Source of truth:** Owner HydroTap management page on https://zipassist.zipindustries.com (e.g. `/owner/management/{hydrotapId}`).  
 **File to change:** `custom_components/zipassist/frontend/zipassist-card.js` (and bump `manifest.json` version for cache bust).  
 **Goal:** Familiar ZipAssist look inside HA — full-width expandable sections, red heading bars, site-like controls for entities we already expose. Not pixel-perfect; match structure, hierarchy, and control language.

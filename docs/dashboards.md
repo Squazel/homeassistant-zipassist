@@ -21,6 +21,29 @@ It mirrors the layout of the official
 5. Choose your HydroTap **device** in the card editor (required)
 6. Optionally set a custom **title**
 
+### Card shows “custom element doesn't exist”
+
+That message means Lovelace rendered the dashboard **before** `zipassist-card.js`
+finished loading (or the script never loaded). It is a **load/registration**
+issue, not a bad card config.
+
+1. Confirm the file is served: open  
+   `http://HOME_ASSISTANT/zipassist/zipassist-card.js?v=VERSION`  
+   (VERSION = integration version in `manifest.json`). You should see JavaScript.
+2. Hard-refresh the dashboard (Ctrl+F5 / empty cache). The card dispatches
+   `ll-rebuild` after it defines the element so a late load can recover.
+3. If it still flaps, your HA may be unable to write **Lovelace resources**
+   (e.g. `.storage/lovelace_resources` version newer than the core). Fix by
+   upgrading HA or restoring a matching backup. Until then, add a resource
+   manually:
+
+   **Settings → Dashboards → ⋮ → Resources → Add resource**
+
+   - URL: `/zipassist/zipassist-card.js?v=0.1.10` (match current version)
+   - Type: **JavaScript module**
+
+4. YAML mode: add the same URL under `lovelace.resources` with `type: module`.
+
 ### YAML example
 
 ```yaml
