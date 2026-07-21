@@ -446,8 +446,13 @@
     }
 
     static getStubConfig(hass) {
+      // Used when adding the card. Prefer a real device when available.
+      // Do not depend on this for picker preview (preview is disabled).
       const device = findZipAssistDeviceId(hass);
-      return device ? { device } : {};
+      if (device) {
+        return { device: device };
+      }
+      return { title: CARD_NAME };
     }
 
     static getConfigForm() {
@@ -470,7 +475,8 @@
         throw new Error("Invalid configuration");
       }
       this._config = Object.assign({}, config);
-      this._scheduleRender(true);
+      // Paint immediately so the editor never shows an empty/spinner frame.
+      this._render();
     }
 
     set hass(hass) {
@@ -497,7 +503,7 @@
     connectedCallback() {
       this._root.addEventListener("click", this._boundClick);
       this._root.addEventListener("change", this._boundChange);
-      this._scheduleRender(true);
+      this._render();
     }
 
     disconnectedCallback() {
@@ -884,20 +890,23 @@
   }
 
   window.customCards = window.customCards || [];
-  let registered = false;
+  const cardInfo = {
+    type: CARD_TYPE,
+    name: CARD_NAME,
+    description: CARD_DESCRIPTION,
+    // Static picker row only — never live-instantiate in the card picker.
+    preview: false,
+    documentationURL: DOC_URL,
+  };
+  let updated = false;
   for (let i = 0; i < window.customCards.length; i++) {
     if (window.customCards[i].type === CARD_TYPE) {
-      registered = true;
+      window.customCards[i] = cardInfo;
+      updated = true;
       break;
     }
   }
-  if (!registered) {
-    window.customCards.push({
-      type: CARD_TYPE,
-      name: CARD_NAME,
-      description: CARD_DESCRIPTION,
-      preview: false,  // static picker entry; do not live-render
-      documentationURL: DOC_URL,
-    });
+  if (!updated) {
+    window.customCards.push(cardInfo);
   }
 })();

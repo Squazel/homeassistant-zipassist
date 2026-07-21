@@ -19,7 +19,7 @@ from custom_components.zipassist.const import DOMAIN
 def test_integration_version_reads_manifest() -> None:
     """Version helper returns the manifest version string."""
     version = _integration_version()
-    assert version == "0.1.0"
+    assert version == "0.1.1"
 
 
 @pytest.mark.asyncio
@@ -70,6 +70,7 @@ def test_card_js_exists_and_defines_element() -> None:
     assert "getStubConfig" in text
     assert "documentationURL" in text
     assert "preview: false" in text
+    assert "Static picker row only" in text
     # HTML escaping must encode entities
     assert "&" + "amp;" in text
     assert "&" + "lt;" in text
