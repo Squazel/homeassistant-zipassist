@@ -391,24 +391,31 @@
   }
 
   function findZipAssistDeviceId(hass) {
-    if (!hass) return null;
-    const devices = hass.devices || {};
-    const entities = hass.entities || {};
-    for (const eid of Object.keys(entities)) {
-      const ereg = entities[eid];
-      if (!ereg || !ereg.device_id) continue;
-      const platform = ereg.platform || ereg.integration;
-      const uid = ereg.unique_id || "";
-      if (platform === "zipassist" || String(uid).startsWith("zipassist_")) {
-        return ereg.device_id;
+    try {
+      if (!hass) return null;
+      const devices = hass.devices || {};
+      const entities = hass.entities || {};
+      const eids = entities && typeof entities === "object" ? Object.keys(entities) : [];
+      for (let i = 0; i < eids.length; i++) {
+        const ereg = entities[eids[i]];
+        if (!ereg || !ereg.device_id) continue;
+        const platform = ereg.platform || ereg.integration;
+        const uid = ereg.unique_id || "";
+        if (platform === "zipassist" || String(uid).startsWith("zipassist_")) {
+          return ereg.device_id;
+        }
       }
-    }
-    for (const did of Object.keys(devices)) {
-      const d = devices[did];
-      const idents = (d && d.identifiers) || [];
-      for (const pair of idents) {
-        if (Array.isArray(pair) && pair[0] === "zipassist") return did;
+      const dids = devices && typeof devices === "object" ? Object.keys(devices) : [];
+      for (let j = 0; j < dids.length; j++) {
+        const d = devices[dids[j]];
+        const idents = (d && d.identifiers) || [];
+        for (let k = 0; k < idents.length; k++) {
+          const pair = idents[k];
+          if (Array.isArray(pair) && pair[0] === "zipassist") return dids[j];
+        }
       }
+    } catch (_e) {
+      /* picker must never throw */
     }
     return null;
   }
@@ -446,11 +453,17 @@
     }
 
     static getStubConfig(hass) {
-      // Used when adding the card. Prefer a real device when available.
-      // Do not depend on this for picker preview (preview is disabled).
-      const device = findZipAssistDeviceId(hass);
-      if (device) {
-        return { device: device };
+      // CRITICAL: the card picker always awaits getStubConfig via the custom
+      // element class. Any throw here leaves the picker on a perpetual spinner
+      // (Lit until() never resolves). Keep this sync and never-throwing.
+      // preview:false means HA will show name/description only after this returns.
+      try {
+        const device = findZipAssistDeviceId(hass);
+        if (device) {
+          return { device: device };
+        }
+      } catch (_e) {
+        /* ignore */
       }
       return { title: CARD_NAME };
     }
@@ -471,12 +484,18 @@
     }
 
     setConfig(config) {
+      // Prefer not throwing: a throw during picker/editor setup can strand the UI.
       if (!config || typeof config !== "object") {
-        throw new Error("Invalid configuration");
+        this._config = { title: CARD_NAME };
+      } else {
+        this._config = Object.assign({}, config);
       }
-      this._config = Object.assign({}, config);
       // Paint immediately so the editor never shows an empty/spinner frame.
-      this._render();
+      try {
+        this._render();
+      } catch (_e) {
+        this._renderEmpty("ZipAssist card failed to render.");
+      }
     }
 
     set hass(hass) {
@@ -895,6 +914,7 @@
     name: CARD_NAME,
     description: CARD_DESCRIPTION,
     // Static picker row only — never live-instantiate in the card picker.
+    // (HA still calls getStubConfig; that path must never throw.)
     preview: false,
     documentationURL: DOC_URL,
   };
@@ -908,5 +928,13 @@
   }
   if (!updated) {
     window.customCards.push(cardInfo);
+  }
+
+  // Help Lovelace rebuild if it created placeholders before we defined.
+  try {
+    const ev = new Event("ll-rebuild", { bubbles: true, composed: true });
+    document.querySelector("home-assistant")?.dispatchEvent(ev);
+  } catch (_e) {
+    /* ignore */
   }
 })();

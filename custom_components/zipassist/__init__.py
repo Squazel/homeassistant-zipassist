@@ -169,10 +169,13 @@ async def _async_register_frontend_card(hass: HomeAssistant) -> None:
 
         version = await hass.async_add_executor_job(_integration_version)
         card_url = f"/{DOMAIN}/zipassist-card.js?v={version}"
-        # Modern browsers: register as module/extra JS (not legacy ES5 bundle).
+        # Register as both classic script and module so the IIFE always runs.
+        # Classic (es5=True) is the reliable path for non-module card bundles;
+        # module covers modern frontend resource loading.
+        add_extra_js_url(hass, card_url, es5=True)
         add_extra_js_url(hass, card_url, es5=False)
 
         domain_data[DATA_FRONTEND_REGISTERED] = True
-        _LOGGER.debug("ZipAssist frontend card registered at %s", card_url)
+        _LOGGER.info("ZipAssist frontend card registered at %s", card_url)
     except Exception:
         _LOGGER.exception("Failed to register ZipAssist frontend card")
