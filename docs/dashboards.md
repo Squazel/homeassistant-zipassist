@@ -7,8 +7,8 @@ It mirrors the layout of the official
 
 > **How it works:** When Home Assistant starts, the integration registers
 > the card with the frontend. It appears in the Lovelace card picker as
-> "ZipAssist HydroTap". Add it to any dashboard and it auto-discovers your
-> HydroTap entities.
+> "ZipAssist HydroTap". Add it to any dashboard, select your HydroTap
+> device, and the card maps that device's entities automatically.
 
 ---
 
@@ -18,24 +18,20 @@ It mirrors the layout of the official
 2. Restart Home Assistant (the card auto-registers on startup)
 3. Edit any dashboard → **Add Card** → search for **"ZipAssist"**
 4. Select **"ZipAssist HydroTap"**
-5. The card auto-discovers your HydroTap entities — no additional config needed
+5. Choose your HydroTap **device** in the card editor (required)
+6. Optionally set a custom **title**
 
-### Optional: Filter by device
-
-If you have multiple HydroTaps, you can add a `device` option to show
-only one (partial name match works):
+### YAML example
 
 ```yaml
 type: custom:zipassist-card
-device: "Kitchen"
+device: DEVICE_REGISTRY_ID   # or a device name substring, e.g. "Kitchen"
+title: "Office Tap"         # optional
 ```
 
-### Optional: Custom title
-
-```yaml
-type: custom:zipassist-card
-title: "Office Tap"
-```
+In the visual editor, pick the device from the ZipAssist device selector.
+For YAML, `device` may be the device registry id **or** a case-insensitive
+substring of the device name.
 
 ---
 
@@ -60,7 +56,7 @@ Sections and individual entities are **skipped automatically** if your
 HydroTap model doesn't support them (e.g., no chilled feature → no
 chilled temp control visible).
 
-The card is collapsible — click the header bar to hide/show all sections.
+Each section is collapsible — click a section heading to hide/show its rows. Tiles and labels open the entity more-info dialog. Switches, numbers, selects, and times are editable inline.
 
 ---
 

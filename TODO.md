@@ -70,5 +70,5 @@ Ship standard Lovelace dashboards as part of the HACS package to mirror the ZipA
 1. ~~**Research**: Open the ZipAssist website in browser, analyze layout sections and control groupings~~ ✅
 2. ~~**Design**: Map website sections to HA card types~~ ✅
 3. ~~**Build**: Create the dashboard generator script~~ ✅
-4. **Integrate**: Ensure files are included in the HACS package manifest/distribution
+4. ~~**Integrate**: Custom card ships with the integration (static path + add_extra_js_url)~~ ✅
 5. ~~**Document**: Add dashboard/card setup instructions to docs/~~ ✅

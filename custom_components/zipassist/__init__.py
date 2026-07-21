@@ -2,20 +2,22 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.update_coordinator import UpdateFailed
 
 try:
     from homeassistant.components.frontend import add_extra_js_url
     from homeassistant.components.http import StaticPathConfig
+
     FRONTEND_AVAILABLE = True
-except ImportError:
+except ImportError:  # pragma: no cover - HA always provides these in production
     FRONTEND_AVAILABLE = False
 
 from .client import ZipAssistClient
@@ -27,6 +29,9 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+# hass.data[DOMAIN] keys reserved for integration-level state (not entry ids)
+DATA_FRONTEND_REGISTERED = "frontend_registered"
+
 PLATFORMS: list[Platform] = [
     Platform.SENSOR,
     Platform.NUMBER,
@@ -37,9 +42,21 @@ PLATFORMS: list[Platform] = [
 ]
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+def _integration_version() -> str:
+    """Return the integration version from manifest.json."""
+    try:
+        manifest_path = Path(__file__).with_name("manifest.json")
+        data = json.loads(manifest_path.read_text(encoding="utf-8"))
+        version = data.get("version")
+        return str(version) if version else "0"
+    except Exception:  # noqa: BLE001 - best-effort cache bust only
+        return "0"
+
+
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the ZipAssist CMMS component."""
     hass.data.setdefault(DOMAIN, {})
+    # Register Lovelace card once at component setup (not per config entry).
     await _async_register_frontend_card(hass)
     return True
 
@@ -67,9 +84,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register services (only once, not per entry)
     await async_setup_services(hass)
-
-    # Register the frontend card when the first entry is set up
-    await _async_register_frontend_card(hass)
 
     # Listen for coordinator updates to detect auth failures
     @callback
@@ -107,15 +121,29 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
         if coordinator:
             await coordinator.client.close()
-        # Only unload services if no more entries
-        if not hass.data[DOMAIN]:
+        # Only unload services if no more config entries remain.
+        # Keep DATA_FRONTEND_REGISTERED so the card stays registered for the
+        # lifetime of the HA process (static paths cannot be unregistered).
+        remaining_entries = [
+            key
+            for key in hass.data.get(DOMAIN, {})
+            if key != DATA_FRONTEND_REGISTERED
+        ]
+        if not remaining_entries:
             async_unload_services(hass)
     return bool(unload_ok)
 
 
 async def _async_register_frontend_card(hass: HomeAssistant) -> None:
-    """Register the ZipAssist frontend card so it auto-loads in the UI."""
+    """Register the ZipAssist frontend card so it auto-loads in the UI.
+
+    Safe to call multiple times; registration is idempotent via a data flag.
+    """
     if not FRONTEND_AVAILABLE:
+        return
+
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if domain_data.get(DATA_FRONTEND_REGISTERED):
         return
 
     try:
@@ -128,17 +156,23 @@ async def _async_register_frontend_card(hass: HomeAssistant) -> None:
             )
             return
 
-        await hass.http.async_register_static_paths([
-            StaticPathConfig(
-                f"/{DOMAIN}",
-                str(frontend_path),
-                cache_headers=False,
-            )
-        ])
+        # cache_headers=True is fine because the URL is version-busted below.
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    f"/{DOMAIN}",
+                    str(frontend_path),
+                    cache_headers=True,
+                )
+            ]
+        )
 
-        card_url = f"/{DOMAIN}/zipassist-card.js"
-        add_extra_js_url(hass, card_url, es5=True)
+        version = await hass.async_add_executor_job(_integration_version)
+        card_url = f"/{DOMAIN}/zipassist-card.js?v={version}"
+        # Modern browsers: register as module/extra JS (not legacy ES5 bundle).
+        add_extra_js_url(hass, card_url, es5=False)
 
+        domain_data[DATA_FRONTEND_REGISTERED] = True
         _LOGGER.debug("ZipAssist frontend card registered at %s", card_url)
     except Exception:
         _LOGGER.exception("Failed to register ZipAssist frontend card")
