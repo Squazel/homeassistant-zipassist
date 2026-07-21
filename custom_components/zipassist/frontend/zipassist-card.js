@@ -453,18 +453,16 @@
     }
 
     static getStubConfig(hass) {
-      // CRITICAL: the card picker always awaits getStubConfig via the custom
-      // element class. Any throw here leaves the picker on a perpetual spinner
-      // (Lit until() never resolves). Keep this sync and never-throwing.
-      // preview:false means HA will show name/description only after this returns.
+      // CRITICAL for picker: must be sync and never throw, or Lit until() spins forever.
+      // preview:false means HA shows name/description only after this returns.
       try {
-        const device = findZipAssistDeviceId(hass);
-        if (device) {
-          return { device: device };
+        if (hass) {
+          var device = findZipAssistDeviceId(hass);
+          if (device) {
+            return { device: device };
+          }
         }
-      } catch (_e) {
-        /* ignore */
-      }
+      } catch (_e) {}
       return { title: CARD_NAME };
     }
 
@@ -904,17 +902,18 @@
     }
   }
 
+  // Define the element first so getCardElementClass / getStubConfig can resolve.
   if (!customElements.get(CARD_TYPE)) {
     customElements.define(CARD_TYPE, ZipAssistCard);
   }
 
+  // Picker metadata: preview:false => static name/description tile (no live preview).
+  // HA still awaits getStubConfig on the custom element class — keep that never-throwing.
   window.customCards = window.customCards || [];
   const cardInfo = {
     type: CARD_TYPE,
     name: CARD_NAME,
     description: CARD_DESCRIPTION,
-    // Static picker row only — never live-instantiate in the card picker.
-    // (HA still calls getStubConfig; that path must never throw.)
     preview: false,
     documentationURL: DOC_URL,
   };
@@ -928,13 +927,5 @@
   }
   if (!updated) {
     window.customCards.push(cardInfo);
-  }
-
-  // Help Lovelace rebuild if it created placeholders before we defined.
-  try {
-    const ev = new Event("ll-rebuild", { bubbles: true, composed: true });
-    document.querySelector("home-assistant")?.dispatchEvent(ev);
-  } catch (_e) {
-    /* ignore */
   }
 })();

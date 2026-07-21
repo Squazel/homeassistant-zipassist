@@ -14,17 +14,10 @@ from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-try:
-    from homeassistant.components.frontend import add_extra_js_url
-    from homeassistant.components.http import StaticPathConfig
-
-    FRONTEND_AVAILABLE = True
-except ImportError:  # pragma: no cover - HA always provides these in production
-    FRONTEND_AVAILABLE = False
-
 from .client import ZipAssistClient
 from .const import DEFAULT_BASE_URL, DOMAIN
 from .coordinator import ZipAssistCoordinator
+from .frontend_register import async_setup_frontend
 from .services import async_setup_services, async_unload_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -153,42 +146,16 @@ async def _async_register_frontend_card(hass: HomeAssistant) -> None:
     """Register the ZipAssist frontend card so it auto-loads in the UI.
 
     Safe to call multiple times; registration is idempotent via a data flag.
+    Uses the WebRTC-style pattern: static path + lovelace module resource +
+    frontend extra module URL so the card appears in the picker reliably.
     """
-    if not FRONTEND_AVAILABLE:
-        return
-
     domain_data = hass.data.setdefault(DOMAIN, {})
     if domain_data.get(DATA_FRONTEND_REGISTERED):
         return
 
     try:
-        frontend_path = Path(__file__).parent / "frontend"
-        card_file = frontend_path / "zipassist-card.js"
-
-        if not card_file.exists():
-            _LOGGER.warning(
-                "ZipAssist frontend card file not found at %s", card_file
-            )
-            return
-
-        # cache_headers=True is fine because the URL is version-busted below.
-        await hass.http.async_register_static_paths(
-            [
-                StaticPathConfig(
-                    f"/{DOMAIN}",
-                    str(frontend_path),
-                    cache_headers=True,
-                )
-            ]
-        )
-
         version = await hass.async_add_executor_job(_integration_version)
-        card_url = f"/{DOMAIN}/zipassist-card.js?v={version}"
-        # Module URL only (community standard). es5=True is for legacy classic
-        # scripts and is incorrect for modern IIFE/module card bundles.
-        add_extra_js_url(hass, card_url, es5=False)
-
+        await async_setup_frontend(hass, version)
         domain_data[DATA_FRONTEND_REGISTERED] = True
-        _LOGGER.info("ZipAssist frontend card registered at %s", card_url)
     except Exception:
         _LOGGER.exception("Failed to register ZipAssist frontend card")
