@@ -18,21 +18,21 @@ ZipAssist Cloud API (zipassist.zipindustries.com)
 └──────────┬──────────────────┘
            │
            ▼
-┌─────────────────────────────┐
-│   Home Assistant Entities   │
-│                             │
-│   Each HydroTap → 1 Device  │
-│   (via DeviceRegistry)      │
-│                             │
-│   18 sensors                │
-│    1 binary sensor          │
-│   20 switches               │
-│   10 numbers                │
-│    3 selects                │
-│   18 times                  │
-│   ─────────────────────     │
-│   70 total entities         │
-│    2 services               │
+┌─────────────────────────────┐     ┌─────────────────────────────┐
+│   Home Assistant Entities   │     │   Frontend                   │
+│                             │     │                             │
+│   Each HydroTap → 1 Device  │     │   zipassist-card.js         │
+│   (via DeviceRegistry)      │     │   (custom Lovelace card)    │
+│                             │     │   Zip-branded UI with       │
+│   18 sensors                │     │   collapsible sections,     │
+│    1 binary sensor          │     │   YES/NO toggles, nested    │
+│   22 switches               │     │   timer tabs                │
+│   10 numbers                │     │                             │
+│    3 selects                │     │   tools/generate_           │
+│   20 times                  │     │   dashboards.py             │
+│   ─────────────────────     │     │   (YAML dashboard gen)      │
+│   74 total entities         │     │                             │
+│    2 services               │     └─────────────────────────────┘
 └─────────────────────────────┘
 ```
 
@@ -68,6 +68,20 @@ The `sleep_mode_status` sensor resolves numeric codes to human-readable names vi
 ### 6. Entity Icons
 Every entity has an explicit `icon` or a `device_class` that implies one.
 
+### 7. Frontend Card Registration
+The custom Lovelace card (`zipassist-card.js`) is served via a static path
+(`/zipassist/zipassist-card.js`) and registered as a Lovelace module resource
+on Home Assistant startup. The card uses shadow DOM with Zip-branded styling
+(red `#E61837` section bars, green `#28B62C` YES/NO toggles) and discovers
+entities by device ID. A version query parameter on the URL provides cache
+busting when the card JS changes.
+
+### 8. Dashboard Generator
+`tools/generate_dashboards.py` queries the Home Assistant REST API to
+auto-discover all zipassist entities, groups them by device, and emits
+standalone dashboard YAML files with real entity IDs — no manual mapping
+needed.
+
 ## File Structure
 
 ```
@@ -88,8 +102,13 @@ homeassistant-zipassist/
 │       ├── time.py              # 18 time entities (energy schedules)
 │       ├── services.py          # 2 services (clear_fault, set_temperature)
 │       ├── services.yaml        # Service definitions for HA
+│       ├── frontend_register.py # Static path + Lovelace resource registration
 │       ├── helpers.py           # Shared helpers (device_name, etc.)
 │       ├── strings.json         # i18n strings
+│       ├── frontend/
+│       │   └── zipassist-card.js  # Custom Lovelace card (Zip-branded UI)
+│       ├── dashboards/
+│       │   └── README.md        # Dashboard/card usage guide
 │       └── translations/
 │           └── en.json          # English translations
 ├── docs/                        # Documentation
@@ -105,7 +124,8 @@ homeassistant-zipassist/
 │   └── test_services.py
 ├── tools/
 │   ├── __init__.py
-│   └── commands.py
+│   ├── commands.py
+│   └── generate_dashboards.py   # Dashboard YAML generator
 ├── .env / .env.example
 ├── .gitignore
 ├── pyproject.toml

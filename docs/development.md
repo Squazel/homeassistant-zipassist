@@ -66,3 +66,26 @@ compared against `docs/api-endpoints.md` to check for drift.
 ## Project Structure
 
 See [Architecture](architecture.md) for the full file structure and design decisions.
+
+## Frontend Card Development
+
+The custom Lovelace card is at `custom_components/zipassist/frontend/zipassist-card.js`.
+It uses vanilla JS with shadow DOM — no build step required. When making changes:
+
+1. Edit `zipassist-card.js`
+2. Bump the `version` in `manifest.json` (cache bust)
+3. Restart Home Assistant or hard-refresh the dashboard (Ctrl+F5)
+
+## Dashboard Generator
+
+`tools/generate_dashboards.py` queries a running Home Assistant instance to
+auto-discover zipassist entities and emit dashboard YAML:
+
+```bash
+python tools/generate_dashboards.py \
+    --ha-url http://homeassistant.local:8123 \
+    --ha-token "eyJ..." \
+    --output hydrotap-detail.yaml
+```
+
+Requires `pyyaml` and `requests`.

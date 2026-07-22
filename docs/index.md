@@ -5,7 +5,7 @@ Documentation for the ZipAssist CMMS Home Assistant integration.
 ## Contents
 
 - [API Endpoints](api-endpoints.md) — Full reference of all known ZipAssist CMMS API endpoints
-- [Entities](entities.md) — All 70 Home Assistant entities across 6 platforms
+- [Entities](entities.md) — All 74 Home Assistant entities across 6 platforms
 - [Dashboards](dashboards.md) — Auto-loaded Lovelace card and layout reference
 - [Architecture](architecture.md) — Integration architecture and design decisions
 - [Development](development.md) — Local development setup, testing, and exploration

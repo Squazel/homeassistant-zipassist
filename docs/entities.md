@@ -1,6 +1,6 @@
 # Entities
 
-The integration exposes **70 entities** across 6 platforms for each HydroTap device.
+The integration exposes **74 entities** across 6 platforms for each HydroTap device.
 
 ## Device Naming
 
@@ -14,11 +14,11 @@ The integration exposes **70 entities** across 6 platforms for each HydroTap dev
 |---|---|---|---|
 | Sensor | `sensor.py` | 18 | Filter life, usage, status, diagnostics, status log fields |
 | Binary Sensor | `binary_sensor.py` | 1 | `system_fault` (PROBLEM device class) |
-| Switch | `switch.py` | 20 | Safety toggles (2) + energy timer actives (18) |
+| Switch | `switch.py` | 22 | Safety toggles (2) + energy timer actives (20) |
 | Number | `number.py` | 10 | Temps (2), dispense durations (4), filter limits (4) |
 | Select | `select.py` | 3 | Sleep mode, energy mode, sync period |
-| Time | `time.py` | 18 | Energy on/off schedule times |
-| **Total** | | **70** | |
+| Time | `time.py` | 20 | Energy on/off schedule times |
+| **Total** | | **74** | |
 
 ## Services
 
@@ -67,13 +67,13 @@ The integration exposes **70 entities** across 6 platforms for each HydroTap dev
 | `external_filter_litres` | `mdi:water-filter` | |
 | `external_filter_days` | `mdi:calendar-clock` | |
 
-### Switches (`switch.py`) — 20 entities
+### Switches (`switch.py`) — 22 entities
 
 | Entity key | Icon | Notes |
 |---|---|---|
 | `safety_lock` | `mdi:lock` | Writable — PATCHes `safetyLockEnabled` |
 | `hot_isolation` | `mdi:water-off` | Writable — PATCHes `hotIsolationEnabled` |
-| All timer on/off switches (18) | `mdi:timer-play-outline` / `mdi:timer-stop-outline` | |
+| All timer on/off switches (20) | `mdi:timer-play-outline` / `mdi:timer-stop-outline` | |
 
 ### Binary Sensors (`binary_sensor.py`) — 1 entity
 
@@ -91,7 +91,7 @@ The integration exposes **70 entities** across 6 platforms for each HydroTap dev
 | `energy_mode` | `mdi:power-plug` | |
 | `sync_period` | `mdi:sync` | |
 
-### Times (`time.py`) — 18 entities
+### Times (`time.py`) — 20 entities
 
 | Entity key | Icon | Notes |
 |---|---|---|

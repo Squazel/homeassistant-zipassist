@@ -61,31 +61,31 @@ substring of the device name.
 ## Card Layout
 
 The card mirrors the website's individual HydroTap management page with
-collapsible sections:
+collapsible red-bar sections:
 
-| # | Section | Card Type | Description |
-|---|---------|-----------|-------------|
-| 1 | **Info & Status** | Tiles | Device status, serial, firmware, WiFi signal, sleep mode, system fault |
-| 2 | **Filter Life** | Tiles | Remaining litres, days, estimated days |
-| 3 | **Usage** | Tiles | Average daily usage, peak hourly usage, energy total |
-| 4 | **Safety & Security** | Rows + switches | Safety lock, hot isolation, sync period |
-| 5 | **Temperature** | Rows | Boiling/chilled temperature controls |
-| 6 | **Dispense Settings** | Rows | Dispense duration controls |
-| 7 | **Filter Limits** | Rows | Internal/external filter litre and day limits |
-| 8 | **On/Off Timers** | Rows | Energy mode select, everyday/daily/weekday-weekend switches & times |
-| 9 | **Sleep Mode** | Rows | Sleep mode selection |
+| # | Section | Type | Description |
+|---|---------|------|-------------|
+| 1 | **Device Info** | Header block | Status, serial, firmware, last sync, WiFi, sleep mode status, filter life, usage, energy |
+| 2 | **Safety Settings** | Collapsible (open) | Safety lock, hot isolation — Zip-style YES/NO toggles |
+| 3 | **Sync Time** | Collapsible | Sync period select |
+| 4 | **System Fault Alerts** | Collapsible (open) | System fault binary sensor + fault details |
+| 5 | **Filters** | Collapsible (sub-grouped) | Remaining litres/days/estimated + internal/external filter limits |
+| 6 | **Dispense Settings** | Collapsible | Boiling, chilled, sparkling, ambient duration controls |
+| 7 | **Temperature Settings** | Collapsible | Boiling and chilled temperature controls |
+| 8 | **On/Off Timers** | Collapsible (nested tabs) | Energy mode select + Everyday / Weekday-Weekend / Daily tabs with per-day switches and times |
+| 9 | **Sleep Mode** | Collapsible | Sleep mode select |
 
 Sections and individual entities are **skipped automatically** if your
 HydroTap model doesn't support them (e.g., no chilled feature → no
 chilled temp control visible).
 
-Each section is collapsible — click a section heading to hide/show its rows. Tiles and labels open the entity more-info dialog. Switches, numbers, selects, and times are editable inline.
+Each collapsible section has a red `#E61837` header bar with a SHOW/HIDE toggle. Safety Settings and System Fault Alerts are open by default; all other settings sections start collapsed. The Device Info block is always visible.
 
 ---
 
 ## Using entities directly
 
-The card is optional. All 70 entities are standard Home Assistant entities
+The card is optional. All 74 entities are standard Home Assistant entities
 — use them directly in automations, scripts, or any other Lovelace card.
 
 ```yaml
