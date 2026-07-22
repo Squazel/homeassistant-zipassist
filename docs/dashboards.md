@@ -65,7 +65,7 @@ collapsible red-bar sections:
 
 | # | Section | Type | Description |
 |---|---------|------|-------------|
-| 1 | **Device Info** | Header block | Status, serial, firmware, last sync, WiFi, sleep mode status, filter life, usage, energy |
+| 1 | **Device Info** | Header block | Status, serial, firmware, last sync (relative "X ago", local time on hover), WiFi, sleep mode status, filter life, usage, energy |
 | 2 | **Safety Settings** | Collapsible (open) | Safety lock, hot isolation — Zip-style YES/NO toggles |
 | 3 | **Sync Time** | Collapsible | Sync period select |
 | 4 | **System Fault Alerts** | Collapsible (open) | System fault binary sensor + fault details |

@@ -14,6 +14,8 @@ sys.path.insert(
     os.path.join(os.path.dirname(__file__), "..", "custom_components"),
 )
 
+from homeassistant.components.sensor import SensorDeviceClass  # noqa: E402
+
 from zipassist.sensor import (  # noqa: E402
     SENSOR_TYPES,
     ZipAssistSensor,
@@ -94,11 +96,12 @@ class TestSensorEntities:
         assert entity.native_value == "No alerts"
 
     def test_sensor_last_sync(self, mock_coordinator, sample_hydrotap) -> None:
-        """Test last_sync sensor."""
+        """Test last_sync sensor returns datetime for TIMESTAMP device class."""
         desc = SENSOR_TYPES[5]  # last_sync
         entity = ZipAssistSensor(mock_coordinator, sample_hydrotap, desc)
         expected = datetime(2026, 7, 17, 8, 35, 32, tzinfo=timezone.utc)
         assert entity.native_value == expected
+        assert desc.device_class == SensorDeviceClass.TIMESTAMP
 
     def test_sensor_fault_details_with_faults(
         self, mock_coordinator, sample_hydrotap
@@ -192,7 +195,8 @@ class TestSensorEntities:
     def test_diagnostic_category(self) -> None:
         """Test diagnostic sensors have DIAGNOSTIC entity category."""
         diagnostic_keys = {
-            "last_sync", "status", "serial_number", "firmware_version",
+            "last_sync",
+            "status", "serial_number", "firmware_version",
             "system_fault_details", "wifi_signal_strength", "energy_since_last_log",
             "energy_total", "sleep_mode_status", "litres_filtered_internal",
             "litres_filtered_external", "days_filtered_internal", "days_filtered_external",

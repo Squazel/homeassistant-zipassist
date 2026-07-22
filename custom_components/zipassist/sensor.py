@@ -352,7 +352,9 @@ class ZipAssistSensor(CoordinatorEntity, SensorEntity):
                 for f in faults
             )
 
-        # last_sync: convert ISO 8601 string to datetime for TIMESTAMP device class
+        # last_sync: convert ISO 8601 string to datetime for TIMESTAMP device class.
+        # HA UI formats TIMESTAMP sensors as relative time ("X ago") with local
+        # absolute time available via formatEntityState / more-info / tooltip.
         if key == "last_sync":
             for h in self.coordinator.data.get("hydrotaps", []):
                 if h.get("hydrotapId") == self._hydrotap_id:

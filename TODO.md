@@ -7,6 +7,7 @@ Remaining work items for the ZipAssist CMMS integration.
 | Area | Details |
 |---|---|
 | "Sleep Mode" and "Sleep Mode Status" — potential confusion with similarly-named entities | The `sleep_mode` select and `sleep_mode_status` sensor have very similar names. Consider renaming for clarity. |
+| ZipAssist card relative timestamps do not tick live | Card **does** re-render when entity states change (`set hass` + signature on `state`/`last_updated`). Relative "X ago" for `last_sync` is computed at render time only, so the label can stay stale (e.g. still "5 minutes ago") until some entity updates or the dashboard refreshes. Review and fix: periodic re-render for TIMESTAMP displays (or equivalent) so relative text advances without waiting for a new entity update. |
 
 ## Not Started
 
@@ -18,10 +19,10 @@ Remaining work items for the ZipAssist CMMS integration.
 | Zip managed indicator | `zipManaged` flag from hydrotap detail not exposed as entity |
 | Usage graphs in HA | API methods exist (`get_usage_graph`, `get_average_usage_graph`) but no HA sensors/entities consume them |
 | Notes read/write | API methods exist (`get_notes`, `add_note`) but no HA entities consume them |
-| Last Sync sensor formatting | `last_sync` sensor shows raw ISO-8601 (`yyyy-MM-ddTHH:mm:ss+ZZ:ZZ`). Should display (1) in local time and (2) with "X ago" relative format. The local time could be a tooltip on the "X ago" display. |
 | Temperature sliders | `boiling_temp` and `chilled_temp` are `number` entities with textbox/up-down controls. Change to sliders over their respective ranges while keeping the value visible (textbox + up/down still available alongside the slider). |
-| On/Off Timer row merging | Each day/group has separate "On Active" + "On Time" rows (and "Off Active" + "Off Time"). Merge each pair into a single row: "On … Yes/No … Time entry" and "Off … Yes/No … Time entry". Total of 10 On + 10 Off rows expected. |
+| On/Off Timer row merging | Each day/group has separate "On Active" + "On Time" rows (and "Off Active" + "Off Time"). Merge each pair into a single row: "On … Yes/No … Time entry" and "Off … Yes/No … Time entry". Total of 10 On + 10 Off rows expected. Do not change general styling or control implementation, or the entities themselves. |
 | Sleep Mode text descriptors | `sleep_mode` select currently shows raw numbers 0–6. Replace with descriptive text labels (numbers still used behind the scenes for the API). Options: Disabled, 2 Hours → 68°C, 2 Hours → Off, Lux Sensor → 68°C, Lux Sensor → Off, Lux Sensor or 2 Hours → 68°C, Lux Sensor or 2 Hours → Off. |
+| Change Yes/No buttons in the On/Off Timers section to Enabled (green) / Disabled [rgb(85,85,85) text on rgb(227,227,227)] toggle buttons (not switches) to match official interface | |
 
 ## API Endpoints Not Consumed by Coordinator
 

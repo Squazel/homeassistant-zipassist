@@ -38,7 +38,7 @@ The integration exposes **74 entities** across 6 platforms for each HydroTap dev
 | `filter_estimated_days` | `mdi:calendar-sync` | |
 | `average_daily_usage` | `mdi:water-percent` | |
 | `peak_hourly_usage` | `mdi:water-sync` | |
-| `last_sync` | _(none)_ | Uses `device_class: TIMESTAMP` |
+| `last_sync` | _(none)_ | Uses `device_class: TIMESTAMP`. HA entity UI and the ZipAssist card show relative time ("X ago"); the card tooltip shows absolute local time. |
 | `status` | `mdi:information-outline` | |
 | `serial_number` | `mdi:numeric` | |
 | `firmware_version` | `mdi:chip` | |
