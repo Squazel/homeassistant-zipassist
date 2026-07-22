@@ -39,7 +39,7 @@ issue, not a bad card config.
 
    **Settings → Dashboards → ⋮ → Resources → Add resource**
 
-   - URL: `/zipassist/zipassist-card.js?v=0.1.11` (match current version)
+   - URL: `/zipassist/zipassist-card.js?v=0.1.12` (match current version)
    - Type: **JavaScript module**
 
 4. YAML mode: add the same URL under `lovelace.resources` with `type: module`.
@@ -65,7 +65,7 @@ collapsible red-bar sections:
 
 | # | Section | Type | Description |
 |---|---------|------|-------------|
-| 1 | **Device Info** | Header block | Status, serial, firmware, last sync (relative "X ago", local time on hover), WiFi, sleep mode status, filter life, usage, energy |
+| 1 | **Device Info** | Header block | Status, serial, firmware, last sync (HA `ha-relative-time` "X ago", absolute local time on hover), WiFi, sleep mode status, filter life, usage, energy |
 | 2 | **Safety Settings** | Collapsible (open) | Safety lock, hot isolation — Zip-style YES/NO toggles |
 | 3 | **Sync Time** | Collapsible | Sync period select |
 | 4 | **System Fault Alerts** | Collapsible (open) | System fault binary sensor + fault details |

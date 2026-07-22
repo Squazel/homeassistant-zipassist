@@ -7,7 +7,6 @@ Remaining work items for the ZipAssist CMMS integration.
 | Area | Details |
 |---|---|
 | "Sleep Mode" and "Sleep Mode Status" — potential confusion with similarly-named entities | The `sleep_mode` select and `sleep_mode_status` sensor have very similar names. Consider renaming for clarity. |
-| ZipAssist card relative timestamps do not tick live | Card **does** re-render when entity states change (`set hass` + signature on `state`/`last_updated`). Relative "X ago" for `last_sync` is computed at render time only, so the label can stay stale (e.g. still "5 minutes ago") until some entity updates or the dashboard refreshes. Review and fix: periodic re-render for TIMESTAMP displays (or equivalent) so relative text advances without waiting for a new entity update. |
 
 ## Not Started
 

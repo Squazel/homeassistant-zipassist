@@ -878,10 +878,35 @@
     return null;
   }
 
+  function stateAvailable(st) {
+    return !!(st && st.state !== "unavailable" && st.state !== "unknown");
+  }
+
+  function isTimestampState(st) {
+    return !!(
+      st &&
+      stateAvailable(st) &&
+      (st.attributes && st.attributes.device_class) === "timestamp"
+    );
+  }
+
+  /** Absolute local time via HA (formatEntityState) for TIMESTAMP tooltips. */
+  function formatTimestampAbsolute(st, hass) {
+    if (hass && typeof hass.formatEntityState === "function") {
+      try {
+        const formatted = hass.formatEntityState(st);
+        if (formatted != null && formatted !== "") return String(formatted);
+      } catch (_e) {
+        /* fall through */
+      }
+    }
+    return String(st.state);
+  }
+
   function formatState(entityId, hass) {
     const st = hass.states[entityId];
     if (!st || st.state === "unavailable" || st.state === "unknown") return "—";
-    // Prefer HA's localized formatter (TIMESTAMP → "X ago", etc.).
+    // Prefer HA's localized formatter when available.
     if (hass && typeof hass.formatEntityState === "function") {
       try {
         const formatted = hass.formatEntityState(st);
@@ -891,10 +916,6 @@
       }
     }
     const raw = st.state;
-    const deviceClass = (st.attributes && st.attributes.device_class) || "";
-    if (deviceClass === "timestamp") {
-      return formatTimestampRelative(raw);
-    }
     const num = Number(raw);
     if (!Number.isNaN(num) && raw !== "" && String(raw).trim() !== "") {
       const unit = (st.attributes && st.attributes.unit_of_measurement) || "";
@@ -906,60 +927,48 @@
     return raw;
   }
 
-  /** Fallback relative time when hass.formatEntityState is unavailable. */
-  function formatTimestampRelative(iso) {
-    const ms = Date.parse(iso);
-    if (Number.isNaN(ms)) return String(iso);
-    const seconds = Math.floor((Date.now() - ms) / 1000);
-    if (seconds < 60) return "just now";
-    if (seconds < 3600) {
-      const m = Math.floor(seconds / 60);
-      return m + (m === 1 ? " minute ago" : " minutes ago");
-    }
-    if (seconds < 86400) {
-      const h = Math.floor(seconds / 3600);
-      return h + (h === 1 ? " hour ago" : " hours ago");
-    }
-    if (seconds < 604800) {
-      const d = Math.floor(seconds / 86400);
-      return d + (d === 1 ? " day ago" : " days ago");
-    }
-    if (seconds < 2592000) {
-      const w = Math.floor(seconds / 604800);
-      return w + (w === 1 ? " week ago" : " weeks ago");
-    }
-    const mo = Math.floor(seconds / 2592000);
-    return mo + (mo === 1 ? " month ago" : " months ago");
-  }
-
-  /** Absolute local time string for tooltips on TIMESTAMP sensors. */
-  function formatTimestampLocal(iso) {
-    const d = new Date(iso);
-    if (Number.isNaN(d.getTime())) return String(iso);
-    try {
-      return d.toLocaleString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        timeZoneName: "short",
-      });
-    } catch (_e) {
-      return d.toString();
-    }
-  }
-
-  function timestampTitle(entityId, hass) {
+  /**
+   * Inner HTML for a state value.
+   * TIMESTAMP sensors use HA's ha-relative-time (same as core UI); absolute
+   * local time from formatEntityState goes on the wrapper title tooltip.
+   * Call bindHaRelativeTimes() after assigning innerHTML.
+   */
+  function stateValueInnerHtml(entityId, hass) {
     const st = hass && hass.states[entityId];
-    if (!st || !stateAvailable(st)) return "";
-    const deviceClass = (st.attributes && st.attributes.device_class) || "";
-    if (deviceClass !== "timestamp") return "";
-    return formatTimestampLocal(st.state);
+    if (!st || !stateAvailable(st)) return esc("—");
+    if (isTimestampState(st)) {
+      // datetime is attribute:false on ha-relative-time — set via data-iso + bind.
+      return (
+        '<ha-relative-time data-iso="' +
+        esc(st.state) +
+        '"></ha-relative-time>'
+      );
+    }
+    return esc(formatState(entityId, hass));
   }
 
-  function stateAvailable(st) {
-    return !!(st && st.state !== "unavailable" && st.state !== "unknown");
+  function stateValueTitleAttr(entityId, hass) {
+    const st = hass && hass.states[entityId];
+    if (!isTimestampState(st)) return "";
+    const tip = formatTimestampAbsolute(st, hass);
+    return tip ? ' title="' + esc(tip) + '"' : "";
+  }
+
+  function bindHaRelativeTimes(root) {
+    if (!root || !root.querySelectorAll) return;
+    const nodes = root.querySelectorAll("ha-relative-time[data-iso]");
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      const iso = el.getAttribute("data-iso");
+      if (!iso) continue;
+      try {
+        el.datetime = iso;
+        el.capitalize = true;
+      } catch (_e) {
+        /* ignore */
+      }
+      el.removeAttribute("data-iso");
+    }
   }
 
   class ZipAssistCard extends HTMLElement {
@@ -1299,12 +1308,11 @@
       if (domain === "switch" || domain === "number" || domain === "select" || domain === "time") {
         html += this._renderControl(entityId, st);
       } else {
-        const tip = timestampTitle(entityId, this._hass);
         html +=
           '<span class="zip-row-value"' +
-          (tip ? ' title="' + esc(tip) + '"' : "") +
+          stateValueTitleAttr(entityId, this._hass) +
           ">" +
-          esc(formatState(entityId, this._hass)) +
+          stateValueInnerHtml(entityId, this._hass) +
           "</span>";
       }
 
@@ -1328,15 +1336,15 @@
         hasAny = true;
         const st = hass.states[eid];
         const available = stateAvailable(st);
-        const tip = timestampTitle(eid, hass);
         html += '<div class="info-row">';
         html += '<span class="info-label">' + esc(label) + "</span>";
         html +=
           '<span class="info-value' + (available ? "" : " muted") +
           '" data-more-info="' + esc(eid) + '"' +
-          (tip ? ' title="' + esc(tip) + '"' : "") +
+          stateValueTitleAttr(eid, hass) +
           ">" +
-          esc(formatState(eid, hass)) + "</span>";
+          stateValueInnerHtml(eid, hass) +
+          "</span>";
         html += "</div>";
       }
       html += "</div>";
@@ -1697,6 +1705,8 @@
 
       html += "</ha-card>";
       this._root.innerHTML = html;
+      // ha-relative-time needs .datetime set as a property (not only attribute).
+      bindHaRelativeTimes(this._root);
     }
   }
 
