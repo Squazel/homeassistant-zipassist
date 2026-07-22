@@ -22,7 +22,6 @@ Remaining work items for the ZipAssist CMMS integration.
 | Temperature sliders | `boiling_temp` and `chilled_temp` are `number` entities with textbox/up-down controls. Change to sliders over their respective ranges while keeping the value visible (textbox + up/down still available alongside the slider). |
 | On/Off Timer row merging | Each day/group has separate "On Active" + "On Time" rows (and "Off Active" + "Off Time"). Merge each pair into a single row: "On … Yes/No … Time entry" and "Off … Yes/No … Time entry". Total of 10 On + 10 Off rows expected. |
 | Sleep Mode text descriptors | `sleep_mode` select currently shows raw numbers 0–6. Replace with descriptive text labels (numbers still used behind the scenes for the API). Options: Disabled, 2 Hours → 68°C, 2 Hours → Off, Lux Sensor → 68°C, Lux Sensor → Off, Lux Sensor or 2 Hours → 68°C, Lux Sensor or 2 Hours → Off. |
-| Review `generate_dashboards.py` | Determine whether `tools/generate_dashboards.py` is still needed/used. Update documentation (`docs/dashboards.md`, `docs/development.md`, `README.md`) depending on the outcome. |
 
 ## API Endpoints Not Consumed by Coordinator
 

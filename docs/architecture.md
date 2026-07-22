@@ -76,13 +76,7 @@ on Home Assistant startup. The card uses shadow DOM with Zip-branded styling
 entities by device ID. A version query parameter on the URL provides cache
 busting when the card JS changes.
 
-### 8. Dashboard Generator
-`tools/generate_dashboards.py` queries the Home Assistant REST API to
-auto-discover all zipassist entities, groups them by device, and emits
-standalone dashboard YAML files with real entity IDs — no manual mapping
-needed.
-
-## File Structure
+### 8. Frontend Card Registration
 
 ```
 homeassistant-zipassist/
@@ -124,8 +118,7 @@ homeassistant-zipassist/
 │   └── test_services.py
 ├── tools/
 │   ├── __init__.py
-│   ├── commands.py
-│   └── generate_dashboards.py   # Dashboard YAML generator
+│   └── commands.py
 ├── .env / .env.example
 ├── .gitignore
 ├── pyproject.toml

@@ -8,7 +8,6 @@ Home Assistant integration for the [ZipAssist CMMS](https://zipassist.zipindustr
 
 - **74 entities** across 6 platforms: sensors, binary sensors, switches, numbers, selects, and times
 - **Custom Lovelace card** — auto-loaded, mirrors the official ZipAssist website layout with collapsible red-bar sections, Zip-style YES/NO toggles, and nested On/Off timer tabs
-- **Dashboard generator** — Python script (`tools/generate_dashboards.py`) auto-discovers entities and emits ready-to-use dashboard YAML
 - **Read/write settings** — change temperatures, dispense durations, filter limits, safety toggles, energy schedules, sleep mode, and sync period
 - **Filter monitoring** — remaining litres, days, estimated days, plus internal/external filter usage and limits
 - **System fault tracking** — active fault detection with details and a `clear_system_fault` service

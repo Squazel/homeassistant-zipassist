@@ -15,8 +15,3 @@ The card discovers entities for the selected device and exposes controls for
 switches, numbers, selects, and times. Status sections use tiles with more-info.
 
 For more details, see [docs/dashboards.md](../../docs/dashboards.md).
-
-## Advanced: YAML Dashboard Generator
-
-For users who prefer standalone dashboard YAML files (rather than cards),
-a generator script is available at `tools/generate_dashboards.py`.
